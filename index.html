@@ -1,0 +1,584 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f1115" />
+    <!-- ========== БЕЗОПАСНОСТЬ ========== -->
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self';
+               script-src 'self' https://telegram.org;
+               style-src 'self';
+               img-src 'self' data: https://t.me;
+               font-src 'self';
+               connect-src 'self';
+               manifest-src 'self';
+               worker-src 'self';
+               frame-src https://oauth.telegram.org;
+               object-src 'none';
+               base-uri 'self';
+               form-action 'self';
+               frame-ancestors 'none'"
+    />
+    <meta name="referrer" content="same-origin" />
+    <title>qwop ex</title>
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <!-- ========== SVG SPRITE ========== -->
+    <svg class="sprite" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+      <symbol id="i-logo" viewBox="0 0 24 24">
+        <circle
+          cx="12"
+          cy="12"
+          r="9"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+        />
+        <circle cx="12" cy="12" r="3" fill="currentColor" />
+      </symbol>
+      <symbol
+        id="i-sun"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="4" />
+        <path
+          d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"
+        />
+      </symbol>
+      <symbol
+        id="i-moon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+      </symbol>
+      <symbol
+        id="i-user"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </symbol>
+      <symbol
+        id="i-arrow-left"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M19 12H5M12 19l-7-7 7-7" />
+      </symbol>
+      <symbol
+        id="i-plus"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 5v14M5 12h14" />
+      </symbol>
+      <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor">
+        <circle cx="12" cy="5" r="1.8" />
+        <circle cx="12" cy="12" r="1.8" />
+        <circle cx="12" cy="19" r="1.8" />
+      </symbol>
+      <symbol
+        id="i-check"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="3"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M20 6 9 17l-5-5" />
+      </symbol>
+      <symbol
+        id="i-image"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect x="3" y="3" width="18" height="18" rx="2" />
+        <circle cx="9" cy="9" r="2" />
+        <path d="m21 15-5-5L5 21" />
+      </symbol>
+      <symbol
+        id="i-search"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m21 21-4.3-4.3" />
+      </symbol>
+      <symbol id="i-pin" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M16 3v2l-2 2v5l3 3v2h-4v6h-2v-6H7v-2l3-3V7L8 5V3z" />
+      </symbol>
+      <symbol
+        id="i-bold"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M7 4h6a4 4 0 0 1 0 8H7zM7 12h7a4 4 0 0 1 0 8H7z" />
+      </symbol>
+      <symbol
+        id="i-italic"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M19 4h-9M14 20H5M15 4 9 20" />
+      </symbol>
+      <symbol
+        id="i-underline"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M6 3v7a6 6 0 0 0 12 0V3M4 21h16" />
+      </symbol>
+      <symbol
+        id="i-strike"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M4 12h16M17.5 7.5A4.5 4.5 0 0 0 13 4h-2a4 4 0 0 0-.8 7.93M7 16a4 4 0 0 0 4 4h2a4.5 4.5 0 0 0 2.5-8"
+        />
+      </symbol>
+      <symbol
+        id="i-list"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M8 6h13M8 12h13M8 18h13" />
+        <circle cx="4" cy="6" r="1" fill="currentColor" />
+        <circle cx="4" cy="12" r="1" fill="currentColor" />
+        <circle cx="4" cy="18" r="1" fill="currentColor" />
+      </symbol>
+      <symbol
+        id="i-list-ol"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M10 6h11M10 12h11M10 18h11M4 6h1v4M4 10h2M6 18H4c0-1 2-2 2-3s-1-1.5-2-1"
+        />
+      </symbol>
+      <symbol
+        id="i-eraser"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="m7 21-4.3-4.3a1 1 0 0 1 0-1.4L13.3 5a1 1 0 0 1 1.4 0l5 5a1 1 0 0 1 0 1.4L11 20H7zM22 21H12"
+        />
+      </symbol>
+      <symbol
+        id="i-trash"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6"
+        />
+      </symbol>
+      <symbol
+        id="i-pin-action"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 17v5M9 10.76V6h-1V4h8v2h-1v4.76l2 2.72V16H7v-2.52z" />
+      </symbol>
+      <symbol
+        id="i-edit"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4z" />
+      </symbol>
+      <symbol id="i-telegram" viewBox="0 0 24 24">
+        <path
+          fill="currentColor"
+          stroke="none"
+          d="M12 0C5.37 0 0 5.37 0 12s5.37 12 12 12 12-5.37 12-12S18.63 0 12 0zm5.9 7.22c-.08.8-.42 2.74-.6 3.63-.35 1.82-.7 3.7-1.07 4.98-.17.6-.5 1.2-.82 1.23-.7.07-1.23-.46-1.9-.9-1.06-.7-1.65-1.13-2.68-1.8-1.19-.78-.42-1.21.26-1.91.18-.18 3.25-2.98 3.31-3.23.01-.03.01-.15-.06-.21-.07-.07-.17-.04-.25-.03-.1.03-1.79 1.14-5.06 3.35-.48.33-.91.49-1.3.48-.43-.01-1.25-.24-1.87-.44-.75-.25-1.35-.37-1.3-.79.03-.22.33-.44.89-.66 3.5-1.52 5.83-2.53 7-3.01 3.33-1.39 4.03-1.63 4.48-1.64.1 0 .32.02.47.14.12.1.16.23.17.33.02.09.04.31.02.47z"
+        />
+      </symbol>
+      <symbol
+        id="i-logout"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9"
+        />
+      </symbol>
+    </svg>
+
+    <main>
+      <!-- LOGIN PAGE -->
+      <section id="login-page" class="page login">
+        <div class="login-container">
+          <div class="login-logo">
+            <svg class="icon"><use href="#i-logo" /></svg>
+          </div>
+          <h1 class="login-title">qwopex</h1>
+          <p class="login-subtitle">Войдите через Telegram для продолжения</p>
+          <div id="telegram-login"></div>
+        </div>
+      </section>
+
+      <!-- HOME PAGE -->
+      <section id="home-page" class="page home">
+        <div class="top-bar">
+          <div class="top-left">
+            <span class="app-icon"
+              ><svg class="icon"><use href="#i-logo" /></svg
+            ></span>
+            <span class="username">qwopex</span>
+          </div>
+          <div class="top-right">
+            <button
+              class="icon-btn theme-btn"
+              data-action="toggle-theme"
+              aria-label="Тема"
+            >
+              <svg class="icon theme-icon-dark"><use href="#i-sun" /></svg>
+              <svg class="icon theme-icon-light"><use href="#i-moon" /></svg>
+            </button>
+            <button
+              class="icon-btn logout-btn"
+              data-action="logout"
+              aria-label="Выйти"
+            >
+              <svg class="icon"><use href="#i-logout" /></svg>
+            </button>
+          </div>
+        </div>
+
+        <div class="content">
+          <div>
+            <div class="profile-card">
+              <div class="avatar">
+                <svg class="icon"><use href="#i-user" /></svg>
+              </div>
+              <div>
+                <div class="user-id">#217651550 || @BVA21</div>
+                <div class="date">Зарегистрирован: 25.10.2025, 21:03:52</div>
+              </div>
+            </div>
+
+            <div class="info">
+              <div class="balance">
+                Баланс:
+                <span class="green">1 200 ₽ (+600.75 ₽ бонусами)</span>
+              </div>
+
+              <div class="stats">
+                <button
+                  type="button"
+                  class="stat"
+                  data-action="open-posts"
+                  data-arg="active"
+                >
+                  <div class="num" data-stat="active">0</div>
+                  <div class="label">Активные</div>
+                </button>
+                <button
+                  type="button"
+                  class="stat"
+                  data-action="open-posts"
+                  data-arg="moderation"
+                >
+                  <div class="num" data-stat="moderation">0</div>
+                  <div class="label">На модерации</div>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <button
+            class="create-btn"
+            data-action="show-page"
+            data-arg="create-page"
+          >
+            Создать объявление
+          </button>
+        </div>
+      </section>
+
+      <!-- POSTS PAGE -->
+      <section id="posts-page" class="page posts-page">
+        <div class="posts-header">
+          <button
+            class="icon-btn back-btn"
+            data-action="show-page"
+            data-arg="home-page"
+            aria-label="Назад"
+          >
+            <svg class="icon"><use href="#i-arrow-left" /></svg>
+          </button>
+          <h2>Мои публикации</h2>
+          <button
+            class="icon-btn add-btn"
+            data-action="show-page"
+            data-arg="create-page"
+            aria-label="Новое"
+          >
+            <svg class="icon"><use href="#i-plus" /></svg>
+          </button>
+        </div>
+
+        <div class="search-container">
+          <span class="search-icon"
+            ><svg class="icon"><use href="#i-search" /></svg
+          ></span>
+          <input
+            type="text"
+            id="posts-search"
+            placeholder="Поиск"
+            maxlength="100"
+            autocomplete="off"
+            spellcheck="false"
+          />
+        </div>
+
+        <div class="filters" id="filters">
+          <button class="chip active" data-filter="all">
+            Все <span class="chip-count" data-count="all">0</span>
+          </button>
+          <button class="chip" data-filter="active">
+            Активные <span class="chip-count" data-count="active">0</span>
+          </button>
+          <button class="chip" data-filter="moderation">
+            На модерации
+            <span class="chip-count" data-count="moderation">0</span>
+          </button>
+          <button class="chip" data-filter="pinned">
+            Закреплённые <span class="chip-count" data-count="pinned">0</span>
+          </button>
+        </div>
+
+        <div class="posts-list" id="posts-list"></div>
+      </section>
+
+      <!-- CREATE PAGE -->
+      <section id="create-page" class="page create-page">
+        <div class="create-header">
+          <button
+            class="icon-btn back-btn"
+            data-action="show-page"
+            data-arg="home-page"
+            aria-label="Назад"
+          >
+            <svg class="icon"><use href="#i-arrow-left" /></svg>
+          </button>
+          <h2>Создание</h2>
+        </div>
+
+        <div class="create-user">
+          <div class="avatar small">
+            <svg class="icon"><use href="#i-user" /></svg>
+          </div>
+          <div class="create-user-info">
+            <div class="user-id">#217651550 || @BVA21</div>
+          </div>
+        </div>
+
+        <div class="upload-box">
+          <input type="file" id="media" hidden accept="image/*" />
+          <label for="media" class="upload-area">
+            <div class="upload-icon">
+              <svg class="icon"><use href="#i-image" /></svg>
+            </div>
+            <p>Загрузить медиа</p>
+          </label>
+        </div>
+
+        <div class="form">
+          <input
+            type="text"
+            placeholder="Название"
+            id="title"
+            maxlength="100"
+            autocomplete="off"
+          />
+
+          <!-- Rich text editor -->
+          <div class="editor">
+            <div
+              class="editor-toolbar"
+              role="toolbar"
+              aria-label="Форматирование"
+            >
+              <button
+                type="button"
+                class="tool"
+                data-cmd="bold"
+                title="Жирный (Ctrl+B)"
+                aria-label="Жирный"
+              >
+                <svg class="icon"><use href="#i-bold" /></svg>
+              </button>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="italic"
+                title="Курсив (Ctrl+I)"
+                aria-label="Курсив"
+              >
+                <svg class="icon"><use href="#i-italic" /></svg>
+              </button>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="underline"
+                title="Подчеркнутый (Ctrl+U)"
+                aria-label="Подчеркнутый"
+              >
+                <svg class="icon"><use href="#i-underline" /></svg>
+              </button>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="strikeThrough"
+                title="Зачеркнутый"
+                aria-label="Зачеркнутый"
+              >
+                <svg class="icon"><use href="#i-strike" /></svg>
+              </button>
+              <span class="tool-sep"></span>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="insertUnorderedList"
+                title="Маркированный список"
+                aria-label="Список"
+              >
+                <svg class="icon"><use href="#i-list" /></svg>
+              </button>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="insertOrderedList"
+                title="Нумерованный список"
+                aria-label="Нумерованный список"
+              >
+                <svg class="icon"><use href="#i-list-ol" /></svg>
+              </button>
+              <span class="tool-sep"></span>
+              <button
+                type="button"
+                class="tool"
+                data-cmd="removeFormat"
+                title="Очистить форматирование"
+                aria-label="Очистить формат"
+              >
+                <svg class="icon"><use href="#i-eraser" /></svg>
+              </button>
+            </div>
+            <div
+              id="description"
+              class="editor-area"
+              contenteditable="true"
+              data-placeholder="Описание"
+              data-maxlength="2000"
+            ></div>
+          </div>
+
+          <div class="price-input">
+            <span>₽</span>
+            <input
+              type="number"
+              placeholder="Цена"
+              id="price"
+              min="0"
+              max="999999999"
+              step="1"
+              inputmode="numeric"
+            />
+          </div>
+        </div>
+
+        <button class="done-btn" data-action="create-post">
+          <svg class="icon"><use href="#i-check" /></svg>
+          Готово
+        </button>
+      </section>
+    </main>
+
+    <script src="script.js"></script>
+  </body>
+</html>
