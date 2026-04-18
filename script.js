@@ -110,18 +110,15 @@ const posts = [
 
 // ============== УТИЛИТЫ ==============
 function escapeHtml(str) {
-  return String(str == null ? "" : str).replace(
-    /[&<>"']/g,
-    function (c) {
-      return {
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#39;",
-      }[c];
-    },
-  );
+  return String(str == null ? "" : str).replace(/[&<>"']/g, function (c) {
+    return {
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#39;",
+    }[c];
+  });
 }
 
 // Разрешенные теги для описания — whitelist санитайзер
@@ -180,9 +177,7 @@ function clampInt(value, min, max) {
 
 function genId() {
   // Уникальнее чем Date.now() — защита от коллизий при быстром создании
-  return (
-    Date.now().toString(36) + Math.random().toString(36).slice(2, 8)
-  );
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
 // ============== РЕНДЕР ==============
@@ -399,7 +394,9 @@ function createPost() {
   }
 
   if (descriptionText.length > LIMITS.description) {
-    alert("Описание слишком длинное (максимум " + LIMITS.description + " символов)");
+    alert(
+      "Описание слишком длинное (максимум " + LIMITS.description + " символов)",
+    );
     return;
   }
 
@@ -600,16 +597,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
   initEditor();
 
-  var user = getTgUser();
-  if (user) {
-    applyUserData(user);
-    showPage("home-page");
-  } else {
-    initTelegramWidget();
-    showPage("login-page");
-  }
+  // var user = getTgUser();
+  // if (user) {
+  //   applyUserData(user);
+  //   showPage("home-page");
+  // } else {
+  //   initTelegramWidget();
+  //   showPage("login-page");
+  // }
 
-  refresh();
+  // refresh();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
