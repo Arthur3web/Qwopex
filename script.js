@@ -7,37 +7,41 @@ const LIMITS = {
 
 // ============== TELEGRAM AUTH ==============
 // Замените на имя вашего бота (без @), созданного через @BotFather
-const TG_BOT_USERNAME = "YOUR_BOT_USERNAME";
+// const TG_BOT_USERNAME = "YOUR_BOT_USERNAME";
 
-function getTgUser() {
-  try {
-    const data = localStorage.getItem("tg_user");
-    return data ? JSON.parse(data) : null;
-  } catch (_) {
-    return null;
-  }
-}
+// function getTgUser() {
+//   try {
+//     const data = localStorage.getItem("tg_user");
+//     return data ? JSON.parse(data) : null;
+//   } catch (_) {
+//     return null;
+//   }
+// }
 
-function saveTgUser(user) {
-  try {
-    localStorage.setItem("tg_user", JSON.stringify(user));
-  } catch (_) {}
-}
+// function saveTgUser(user) {
+//   try {
+//     localStorage.setItem("tg_user", JSON.stringify(user));
+//   } catch (_) {}
+// }
+
+// function logout() {
+//   try {
+//     localStorage.removeItem("tg_user");
+//   } catch (_) {}
+//   showPage("login-page");
+// }
 
 function logout() {
-  try {
-    localStorage.removeItem("tg_user");
-  } catch (_) {}
-  showPage("login-page");
+  console.log("logout disabled (no auth mode)");
 }
 
 // Вызывается Telegram Login Widget после успешного входа
-window.onTelegramAuth = function (user) {
-  saveTgUser(user);
-  applyUserData(user);
-  showPage("home-page");
-  refresh();
-};
+// window.onTelegramAuth = function (user) {
+//   // saveTgUser(user);
+//   applyUserData(user);
+//   showPage("home-page");
+//   refresh();
+// };
 
 function applyUserData(user) {
   if (!user) return;
@@ -65,20 +69,20 @@ function applyUserData(user) {
   }
 }
 
-function initTelegramWidget() {
-  const container = document.getElementById("telegram-login");
-  if (!container || container.querySelector("script")) return;
+// function initTelegramWidget() {
+//   const container = document.getElementById("telegram-login");
+//   if (!container || container.querySelector("script")) return;
 
-  var script = document.createElement("script");
-  script.async = true;
-  script.src = "https://telegram.org/js/telegram-widget.js?22";
-  script.setAttribute("data-telegram-login", TG_BOT_USERNAME);
-  script.setAttribute("data-size", "large");
-  script.setAttribute("data-radius", "10");
-  script.setAttribute("data-onauth", "onTelegramAuth(user)");
-  script.setAttribute("data-request-access", "write");
-  container.appendChild(script);
-}
+//   var script = document.createElement("script");
+//   script.async = true;
+//   script.src = "https://telegram.org/js/telegram-widget.js?22";
+//   script.setAttribute("data-telegram-login", TG_BOT_USERNAME);
+//   script.setAttribute("data-size", "large");
+//   script.setAttribute("data-radius", "10");
+//   script.setAttribute("data-onauth", "onTelegramAuth(user)");
+//   script.setAttribute("data-request-access", "write");
+//   container.appendChild(script);
+// }
 
 // ============== ДАННЫЕ ==============
 const posts = [
@@ -607,6 +611,18 @@ document.addEventListener("DOMContentLoaded", () => {
   // }
 
   // refresh();
+
+  const fakeUser = {
+    id: 217651550,
+    first_name: "qwopex",
+    username: "BVA21",
+    photo_url: "",
+  };
+
+  applyUserData(fakeUser);
+  showPage("home-page");
+
+  refresh();
 
   if ("serviceWorker" in navigator) {
     window.addEventListener("load", () => {
