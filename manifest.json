@@ -1,21 +1,49 @@
 {
+  "id": "/",
   "name": "qwop ex",
   "short_name": "qwopex",
-  "start_url": "./",
+  "description": "Суперапп: объявления, кошелёк, чаты и маркет",
+  "start_url": "./?source=pwa",
   "scope": "./",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
+  "orientation": "portrait",
   "background_color": "#0f1115",
   "theme_color": "#0f1115",
+  "lang": "ru",
+  "categories": ["shopping", "social", "finance"],
   "icons": [
     {
-      "src": "images/icon-192.png",
-      "sizes": "192x192",
-      "type": "image/png"
+      "src": "icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Объявления",
+      "short_name": "Объявления",
+      "url": "./#/ads",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     },
     {
-      "src": "images/icon-512.png",
-      "sizes": "512x512",
-      "type": "image/png"
+      "name": "Создать объявление",
+      "short_name": "Создать",
+      "url": "./#/ads/create",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Кошелёк",
+      "short_name": "Кошелёк",
+      "url": "./#/wallet",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "Чаты",
+      "short_name": "Чаты",
+      "url": "./#/chats",
+      "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml" }]
     }
   ]
 }
