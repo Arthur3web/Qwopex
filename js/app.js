@@ -6,6 +6,7 @@
 
 import { REGISTRY, getApp } from "./registry.js";
 import { auth, createBus, escapeHtml } from "./sdk.js";
+import { getState as getWalletState } from "./data/wallet-store.js";
 
 const view = document.getElementById("view");
 const shellTop = document.getElementById("shell-top");
@@ -39,20 +40,50 @@ function toggleTheme() {
 }
 
 // ---------- ТОСТЫ ----------
+// type: "info" | "success" | "error" — определяет иконку и цвет.
+const TOAST_ICONS = {
+  info: "#i-info",
+  success: "#i-check",
+  error: "#i-alert",
+};
 let toastTimer = null;
-function toast(message) {
+function toast(message, type = "info") {
+  const kind = TOAST_ICONS[type] ? type : "info";
   let el = document.getElementById("toast");
   if (!el) {
     el = document.createElement("div");
     el.id = "toast";
-    el.className = "toast";
-    el.setAttribute("role", "status");
     document.body.appendChild(el);
   }
-  el.textContent = message;
+  el.className = "toast toast--" + kind;
+  // ошибки объявляем ассистивно сразу (assertive), остальное — вежливо
+  el.setAttribute("role", kind === "error" ? "alert" : "status");
+  el.innerHTML =
+    '<svg class="icon toast-icon"><use href="' +
+    TOAST_ICONS[kind] +
+    '" /></svg><span class="toast-text"></span>';
+  el.querySelector(".toast-text").textContent = message;
+  void el.offsetWidth; // reflow — чтобы повторный тост заново анимировался
   el.classList.add("show");
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
+}
+
+// ---------- ФОКУС-МЕНЕДЖМЕНТ (a11y) ----------
+// При смене экрана переводим фокус на заголовок, чтобы скринридер
+// объявил новый контекст, а навигация с клавиатуры начиналась сверху.
+function focusHeading() {
+  const heading = view.querySelector("h1, h2, [data-autofocus]");
+  if (!heading) return;
+  if (!heading.hasAttribute("tabindex")) heading.setAttribute("tabindex", "-1");
+  // requestAnimationFrame — дождаться, пока узел реально в DOM и виден
+  requestAnimationFrame(() => {
+    try {
+      heading.focus({ preventScroll: true });
+    } catch (_) {
+      heading.focus();
+    }
+  });
 }
 
 // ---------- КОНТЕКСТ, который получают мини-аппы ----------
@@ -73,8 +104,9 @@ function makeCtx(subpath) {
 function renderLauncher() {
   shellTop.hidden = false;
   const u = auth.getUser() || {};
-  const balance = (u.balance ?? 0).toLocaleString("ru-RU");
-  const bonus = (u.bonus ?? 0).toLocaleString("ru-RU");
+  const wallet = getWalletState();
+  const balance = wallet.balance.toLocaleString("ru-RU");
+  const bonus = wallet.bonus.toLocaleString("ru-RU");
   const idLine =
     "#" + (u.id ?? "") + (u.username ? " || @" + u.username : "");
 
@@ -89,6 +121,7 @@ function renderLauncher() {
 
   view.innerHTML = `
     <section class="page home active">
+      <h1 class="sr-only">Главная</h1>
       <div class="content">
         <div class="profile-card">
           <div class="avatar">${
@@ -103,7 +136,12 @@ function renderLauncher() {
         </div>
 
         <div class="info">
-          <div class="balance">Баланс: <span class="green">${balance} ₽ (+${bonus} ₽ бонусами)</span></div>
+          <div class="balance">Баланс:
+            <a class="balance-amounts" href="#/wallet">
+              <span class="balance-main">${balance} ₽</span>
+              <span class="balance-bonus">+${bonus} ₽</span>
+            </a>
+          </div>
           <div class="stats">
             <a class="stat" href="#/ads">
               <div class="num">${stats.active}</div>
@@ -124,6 +162,7 @@ function renderLauncher() {
     </section>
   `;
   window.scrollTo(0, 0);
+  focusHeading();
 }
 
 // ---------- РОУТИНГ ----------
@@ -182,6 +221,7 @@ async function route() {
     currentAppId = appId;
     document.title = app.title + " — qwopex";
     currentModule.mount(view, makeCtx(subpath));
+    focusHeading();
   } catch (e) {
     console.error("Не удалось загрузить мини-апп:", appId, e);
     view.innerHTML =
@@ -249,9 +289,30 @@ function showUpdateToast(sw) {
   });
 }
 
+// ---------- SVG-СПРАЙТ ИКОНОК ----------
+// Спрайт вынесен в icons.svg и инъектируется в DOM до первого рендера,
+// чтобы все ссылки <use href="#i-…"> резолвились как раньше (внутри документа).
+// Файл прекэшируется SW — после первой загрузки доступен и офлайн.
+async function loadIcons() {
+  if (document.getElementById("icon-sprite")) return;
+  try {
+    const res = await fetch("icons.svg");
+    if (!res.ok) return;
+    const holder = document.createElement("div");
+    holder.innerHTML = await res.text();
+    const sprite = holder.querySelector("svg");
+    if (!sprite) return;
+    sprite.id = "icon-sprite";
+    document.body.insertBefore(sprite, document.body.firstChild);
+  } catch (e) {
+    console.warn("Не удалось загрузить иконки:", e);
+  }
+}
+
 // ---------- СТАРТ ----------
-function start() {
+async function start() {
   applyTheme();
+  await loadIcons(); // спрайт в DOM до первого рендера иконок
   wireShellTop();
   window.addEventListener("hashchange", route);
   // первый маршрут (если пусто — лаунчер)

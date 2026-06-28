@@ -1,9 +1,12 @@
 // ============================================================
 // Мини-апп «Объявления».
 // Порт исходного script.js под контракт мини-аппа супераппа.
-// Владеет собственным UI (список + создание) и под-маршрутами:
-//   #/ads          — список
-//   #/ads/create   — создание
+// Владеет собственным UI (список + деталь + создание/редактирование)
+// и под-маршрутами:
+//   #/ads             — список
+//   #/ads/create      — создание
+//   #/ads/<id>        — просмотр объявления (карточка-деталь)
+//   #/ads/<id>/edit   — редактирование
 // ============================================================
 
 import {
@@ -13,7 +16,11 @@ import {
   clampInt,
   genId,
   createStorage,
+  resizeImageToDataURL,
 } from "../sdk.js";
+import { confirmDialog } from "../ui/qx-modal.js";
+import { adMessageInfo } from "../data/chats-store.js";
+import { CATEGORIES } from "../data/categories.js";
 
 const store = createStorage("ads");
 
@@ -24,6 +31,7 @@ const SEED = [
     title: "Закреплённое объявление",
     description: "<b>Пример</b> закреплённого поста",
     price: 1500,
+    category: "Электроника",
     pinned: true,
     status: "active",
   },
@@ -32,6 +40,7 @@ const SEED = [
     title: "Активное объявление",
     description: "Пример <i>активного</i> поста",
     price: 2000,
+    category: "Дом",
     pinned: false,
     status: "active",
   },
@@ -40,6 +49,7 @@ const SEED = [
     title: "На проверке",
     description: "Ожидает модерации",
     price: 999,
+    category: "Услуги",
     pinned: false,
     status: "moderation",
   },
@@ -63,6 +73,13 @@ const TEMPLATE = `
              maxlength="100" autocomplete="off" spellcheck="false" />
     </div>
 
+    <div class="filter-label">Категория</div>
+    <div class="cat-filters js-cat-filters">
+      <button class="chip cat-chip active" data-category="">Все</button>
+      ${CATEGORIES.map((c) => '<button class="chip cat-chip" data-category="' + escapeHtml(c) + '">' + escapeHtml(c) + "</button>").join("")}
+    </div>
+
+    <div class="filter-label">Статус</div>
     <div class="filters js-filters">
       <button class="chip active" data-filter="all">Все <span class="chip-count" data-count="all">0</span></button>
       <button class="chip" data-filter="active">Активные <span class="chip-count" data-count="active">0</span></button>
@@ -73,12 +90,42 @@ const TEMPLATE = `
     <div class="posts-list js-posts-list"></div>
   </section>
 
-  <section class="page create-page" data-view="create">
-    <div class="create-header">
+  <section class="page detail-page" data-view="detail">
+    <div class="posts-header">
       <button class="icon-btn back-btn" data-act="goto-list" aria-label="Назад">
         <svg class="icon"><use href="#i-arrow-left" /></svg>
       </button>
-      <h2>Создание</h2>
+      <h2>Объявление</h2>
+      <a class="icon-btn detail-chats-btn js-detail-chats" href="#/chats" aria-label="Сообщения" hidden>
+        <svg class="icon"><use href="#i-chat" /></svg>
+        <span class="detail-chats-badge js-detail-chats-badge" hidden></span>
+      </a>
+      <div class="detail-menu-wrap">
+        <button class="icon-btn js-detail-menu-btn" aria-label="Действия">
+          <svg class="icon"><use href="#i-more" /></svg>
+        </button>
+        <div class="post-menu detail-menu js-detail-menu">
+          <button class="menu-item" data-act="goto-edit">
+            <svg class="icon"><use href="#i-edit" /></svg><span>Редактировать</span>
+          </button>
+          <button class="menu-item js-detail-pin-item" data-act="toggle-pin-detail" hidden>
+            <svg class="icon"><use href="#i-pin-action" /></svg><span>Закрепить</span>
+          </button>
+          <button class="menu-item danger" data-act="delete-detail">
+            <svg class="icon"><use href="#i-trash" /></svg><span>Удалить</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="detail-body js-detail-body"></div>
+  </section>
+
+  <section class="page create-page" data-view="create">
+    <div class="create-header">
+      <button class="icon-btn back-btn" data-act="create-back" aria-label="Назад">
+        <svg class="icon"><use href="#i-arrow-left" /></svg>
+      </button>
+      <h2 class="js-create-title">Создание</h2>
     </div>
 
     <div class="create-user">
@@ -96,6 +143,11 @@ const TEMPLATE = `
 
     <div class="form">
       <input type="text" placeholder="Название" class="js-title" maxlength="100" autocomplete="off" />
+
+      <select class="form-select js-category" aria-label="Категория">
+        <option value="">Категория</option>
+        ${CATEGORIES.map((c) => '<option value="' + c + '">' + c + "</option>").join("")}
+      </select>
 
       <div class="editor">
         <div class="editor-toolbar" role="toolbar" aria-label="Форматирование">
@@ -115,14 +167,14 @@ const TEMPLATE = `
 
       <div class="price-input">
         <span>₽</span>
-        <input type="number" placeholder="Цена" class="js-price"
-               min="0" max="999999999" step="1" inputmode="numeric" />
+        <input type="number" placeholder="Цена" class="js-price" required
+               min="1" max="999999999" step="1" inputmode="numeric" />
       </div>
     </div>
 
-    <button class="done-btn" data-act="create-post">
+    <button class="done-btn" data-act="save-post">
       <svg class="icon"><use href="#i-check" /></svg>
-      Готово
+      <span class="js-done-label">Готово</span>
     </button>
   </section>
 `;
@@ -132,6 +184,10 @@ let ctx = null;
 let posts = [];
 let currentFilter = "all"; // all | active | moderation | pinned
 let currentQuery = "";
+let currentCategory = ""; // фильтр по категории ("" = все)
+let selectedImage = null; // data URL выбранного/сжатого изображения для формы
+let editingId = null; // id редактируемого объявления (null = создание нового)
+let detailId = null; // id объявления, открытого в карточке-детали
 const cleanups = [];
 
 // ---------- helpers с областью видимости root ----------
@@ -160,6 +216,18 @@ function renderPosts(data) {
   data.forEach((post) => {
     const div = document.createElement("div");
     div.className = "post" + (post.status !== "active" ? " inactive" : "");
+    div.dataset.id = post.id;
+    div.setAttribute("role", "button");
+    div.setAttribute("tabindex", "0");
+
+    if (post.image) {
+      const thumb = document.createElement("img");
+      thumb.className = "post-thumb";
+      thumb.alt = "";
+      thumb.loading = "lazy";
+      thumb.src = post.image;
+      div.appendChild(thumb);
+    }
 
     const content = document.createElement("div");
     content.className = "post-content";
@@ -174,6 +242,13 @@ function renderPosts(data) {
     }
     titleEl.appendChild(document.createTextNode(post.title));
     content.appendChild(titleEl);
+
+    if (post.category) {
+      const catEl = document.createElement("div");
+      catEl.className = "post-category";
+      catEl.textContent = post.category;
+      content.appendChild(catEl);
+    }
 
     const descEl = document.createElement("div");
     descEl.className = "post-desc";
@@ -194,24 +269,53 @@ function renderPosts(data) {
       content.appendChild(statusEl);
     }
 
+    // индикатор сообщений по объявлению (данные из мини-аппа «Чаты»)
+    const info = adMessageInfo(post.id);
+    if (info.count > 0) {
+      const chats = document.createElement("a");
+      chats.className = "post-chats" + (info.unread > 0 ? " has-unread" : "");
+      chats.href = "#/chats/" + info.dialogId;
+      chats.innerHTML =
+        '<svg class="icon"><use href="#i-chat"/></svg><span>Сообщения</span>';
+      if (info.unread > 0) {
+        const badge = document.createElement("span");
+        badge.className = "post-chats-unread";
+        badge.textContent = info.unread;
+        chats.appendChild(badge);
+      }
+      content.appendChild(chats);
+    }
+
     div.appendChild(content);
 
     const actions = document.createElement("div");
     actions.className = "post-actions";
+    const idAttr = escapeHtml(post.id);
+    const editItem =
+      '<button class="menu-item" data-menu-action="edit" data-id="' +
+      idAttr +
+      '"><svg class="icon"><use href="#i-edit"/></svg><span>Редактировать</span></button>';
+    // Закреплять можно только опубликованные (активные) объявления —
+    // на модерации публикация ещё не видна, закрепление не имеет смысла.
+    const pinItem =
+      post.status === "active"
+        ? '<button class="menu-item" data-menu-action="pin" data-id="' +
+          idAttr +
+          '"><svg class="icon"><use href="#i-pin-action"/></svg><span>' +
+          (post.pinned ? "Открепить" : "Закрепить") +
+          "</span></button>"
+        : "";
     actions.innerHTML =
       '<button class="icon-btn menu-btn" aria-label="Меню" data-id="' +
-      escapeHtml(post.id) +
+      idAttr +
       '"><svg class="icon"><use href="#i-more"/></svg></button>' +
       '<div class="post-menu" data-menu-for="' +
-      escapeHtml(post.id) +
+      idAttr +
       '">' +
-      '<button class="menu-item" data-menu-action="pin" data-id="' +
-      escapeHtml(post.id) +
-      '"><svg class="icon"><use href="#i-pin-action"/></svg><span>' +
-      (post.pinned ? "Открепить" : "Закрепить") +
-      "</span></button>" +
+      editItem +
+      pinItem +
       '<button class="menu-item danger" data-menu-action="delete" data-id="' +
-      escapeHtml(post.id) +
+      idAttr +
       '"><svg class="icon"><use href="#i-trash"/></svg><span>Удалить</span></button>' +
       "</div>";
     div.appendChild(actions);
@@ -228,11 +332,22 @@ function persist() {
   store.set("posts", posts);
 }
 
-function deletePost(id) {
+async function deletePost(id) {
   const idx = posts.findIndex((p) => String(p.id) === String(id));
   if (idx === -1) return;
-  if (!confirm("Удалить объявление «" + posts[idx].title + "»?")) return;
-  posts.splice(idx, 1);
+  const ok = await confirmDialog({
+    title: "Удалить объявление?",
+    message: "«" + posts[idx].title + "» будет удалено без возможности восстановления.",
+    confirmText: "Удалить",
+    cancelText: "Отмена",
+    danger: true,
+  });
+  if (!ok) return;
+  // мини-апп мог быть размонтирован, пока открыт диалог
+  if (!root) return;
+  const liveIdx = posts.findIndex((p) => String(p.id) === String(id));
+  if (liveIdx === -1) return;
+  posts.splice(liveIdx, 1);
   persist();
   refresh();
 }
@@ -240,6 +355,11 @@ function deletePost(id) {
 function togglePin(id) {
   const post = posts.find((p) => String(p.id) === String(id));
   if (!post) return;
+  // Защита на случай вызова не из UI: закрепляем только активные.
+  if (post.status !== "active") {
+    ctx.toast("Закрепить можно только активное объявление");
+    return;
+  }
   post.pinned = !post.pinned;
   posts.sort((a, b) => Number(b.pinned) - Number(a.pinned));
   persist();
@@ -253,6 +373,10 @@ function getVisiblePosts() {
   else if (currentFilter === "moderation")
     list = list.filter((p) => p.status === "moderation");
   else if (currentFilter === "pinned") list = list.filter((p) => p.pinned);
+
+  if (currentCategory) {
+    list = list.filter((p) => p.category === currentCategory);
+  }
 
   if (currentQuery) {
     list = list.filter((p) => p.title.toLowerCase().includes(currentQuery));
@@ -271,7 +395,8 @@ function updateFilterCounts() {
     const el = $('[data-count="' + k + '"]');
     if (el) el.textContent = counts[k];
   });
-  $$(".chip").forEach((chip) => {
+  // только статусные чипы (категорийные .chip живут в .js-cat-filters)
+  $$(".js-filters .chip").forEach((chip) => {
     chip.classList.toggle(
       "active",
       chip.getAttribute("data-filter") === currentFilter,
@@ -294,47 +419,296 @@ function showView(view) {
   ctx.scrollTop();
 }
 
-// ---------- СОЗДАНИЕ ----------
-function createPost() {
+// ---------- СОЗДАНИЕ / РЕДАКТИРОВАНИЕ ----------
+// Считать и провалидировать форму. Возвращает данные или null (с тостом).
+function readForm() {
   const titleEl = $(".js-title");
   const descEl = $(".js-description");
   const priceEl = $(".js-price");
+  const categoryEl = $(".js-category");
 
   const title = titleEl.value.trim().slice(0, LIMITS.title);
   const descriptionText = descEl.textContent.trim();
   const descriptionHtml = sanitizeHtml(descEl.innerHTML);
   const price = clampInt(priceEl.value, 0, LIMITS.priceMax);
+  const category = categoryEl ? categoryEl.value : "";
 
   if (!title) {
-    ctx.toast("Введите название");
-    return;
+    ctx.toast("Введите название", "error");
+    titleEl.focus();
+    return null;
+  }
+  if (!category) {
+    ctx.toast("Выберите категорию", "error");
+    if (categoryEl) categoryEl.focus();
+    return null;
   }
   if (descriptionText.length > LIMITS.description) {
-    ctx.toast("Описание слишком длинное (макс " + LIMITS.description + ")");
-    return;
+    ctx.toast("Описание слишком длинное (макс " + LIMITS.description + ")", "error");
+    return null;
   }
-
-  posts.unshift({
-    id: genId(),
+  if (!priceEl.value.trim() || price <= 0) {
+    ctx.toast("Укажите цену", "error");
+    priceEl.focus();
+    return null;
+  }
+  return {
     title,
     description: descriptionText ? descriptionHtml : "",
     price,
-    pinned: false,
-    status: "moderation",
-  });
-  persist();
+    category,
+    image: selectedImage || "",
+  };
+}
 
-  titleEl.value = "";
-  descEl.innerHTML = "";
-  priceEl.value = "";
-  descEl.classList.add("is-empty");
+function savePost() {
+  const data = readForm();
+  if (!data) return;
+
+  if (editingId != null) {
+    // ----- редактирование существующего -----
+    const post = posts.find((p) => String(p.id) === String(editingId));
+    if (!post) {
+      ctx.toast("Объявление не найдено", "error");
+      ctx.navigate("#/ads");
+      return;
+    }
+    Object.assign(post, data);
+    persist();
+    const savedId = post.id;
+    resetForm();
+    ctx.navigate("#/ads/" + savedId); // вернуться к карточке-детали
+    ctx.toast("Изменения сохранены", "success");
+    return;
+  }
+
+  // ----- создание нового -----
+  posts.unshift(
+    Object.assign(
+      { id: genId(), pinned: false, status: "moderation" },
+      data,
+    ),
+  );
+  persist();
+  resetForm();
 
   currentFilter = "moderation";
   currentQuery = "";
+  currentCategory = "";
   const search = $(".posts-search");
   if (search) search.value = "";
+  applyCatActive();
   ctx.navigate("#/ads");
   refresh();
+  ctx.toast("Объявление отправлено на модерацию", "success");
+}
+
+// Очистить поля формы.
+function resetForm() {
+  const titleEl = $(".js-title");
+  const descEl = $(".js-description");
+  const priceEl = $(".js-price");
+  if (titleEl) titleEl.value = "";
+  if (descEl) {
+    descEl.innerHTML = "";
+    descEl.classList.add("is-empty");
+  }
+  if (priceEl) priceEl.value = "";
+  const categoryEl = $(".js-category");
+  if (categoryEl) categoryEl.value = "";
+  selectedImage = null;
+  renderMediaPreview();
+}
+
+// Заполнить форму данными объявления (для редактирования).
+function fillForm(post) {
+  const titleEl = $(".js-title");
+  const descEl = $(".js-description");
+  const priceEl = $(".js-price");
+  const categoryEl = $(".js-category");
+  if (titleEl) titleEl.value = post.title || "";
+  if (descEl) {
+    descEl.innerHTML = sanitizeHtml(post.description || "");
+    descEl.classList.toggle("is-empty", !descEl.textContent.trim());
+  }
+  if (priceEl) priceEl.value = post.price || "";
+  if (categoryEl) categoryEl.value = post.category || "";
+  selectedImage = post.image || null;
+  renderMediaPreview();
+}
+
+// Переключить заголовок/кнопку формы между «Создание» и «Редактирование».
+function setCreateMode(isEdit) {
+  const titleH = $(".js-create-title");
+  if (titleH) titleH.textContent = isEdit ? "Редактирование" : "Создание";
+  const lbl = $(".js-done-label");
+  if (lbl) lbl.textContent = isEdit ? "Сохранить" : "Готово";
+}
+
+// ---------- ВХОД В ЭКРАНЫ (вызывается из onRoute по URL) ----------
+function enterList() {
+  editingId = null;
+  detailId = null;
+  refresh(); // отразить возможные правки
+  showView("list");
+}
+
+function enterCreate() {
+  editingId = null;
+  resetForm();
+  setCreateMode(false);
+  showView("create");
+  const titleEl = $(".js-title");
+  if (titleEl) titleEl.focus();
+}
+
+function enterEdit(id) {
+  const post = posts.find((p) => String(p.id) === String(id));
+  if (!post) {
+    ctx.navigate("#/ads");
+    return;
+  }
+  editingId = post.id;
+  fillForm(post);
+  setCreateMode(true);
+  showView("create");
+}
+
+function enterDetail(id) {
+  if (!renderDetail(id)) {
+    ctx.navigate("#/ads");
+    return;
+  }
+  showView("detail");
+}
+
+// ---------- КАРТОЧКА-ДЕТАЛЬ ----------
+function renderDetail(id) {
+  const post = posts.find((p) => String(p.id) === String(id));
+  const body = $(".js-detail-body");
+  if (!post || !body) return false;
+  detailId = post.id;
+  body.textContent = "";
+
+  // пункт «Закрепить/Открепить» в меню — только для активных (как в списке)
+  const pinItem = $(".js-detail-pin-item");
+  if (pinItem) {
+    if (post.status === "active") {
+      pinItem.hidden = false;
+      pinItem.querySelector("span").textContent = post.pinned
+        ? "Открепить"
+        : "Закрепить";
+    } else {
+      pinItem.hidden = true;
+    }
+  }
+
+  // иконка сообщений в шапке с бейджем непрочитанных
+  const info = adMessageInfo(post.id);
+  const chatsBtn = $(".js-detail-chats");
+  const chatsBadge = $(".js-detail-chats-badge");
+  if (chatsBtn) {
+    if (info.count > 0) {
+      chatsBtn.hidden = false;
+      chatsBtn.href = "#/chats/" + info.dialogId;
+      if (info.unread > 0 && chatsBadge) {
+        chatsBadge.hidden = false;
+        chatsBadge.textContent = info.unread;
+      } else if (chatsBadge) {
+        chatsBadge.hidden = true;
+      }
+    } else {
+      chatsBtn.hidden = true;
+    }
+  }
+
+  if (post.image) {
+    const img = document.createElement("img");
+    img.className = "detail-image";
+    img.alt = "";
+    img.src = post.image;
+    body.appendChild(img);
+  }
+
+  const inner = document.createElement("div");
+  inner.className = "detail-inner";
+
+  // бейджи: статус + категория
+  const badges = document.createElement("div");
+  badges.className = "detail-badges";
+  const badge = document.createElement("span");
+  if (post.status === "moderation") {
+    badge.className = "detail-badge moderation";
+    badge.textContent = "На модерации";
+  } else {
+    badge.className = "detail-badge active";
+    badge.textContent = post.pinned ? "Активно · закреплено" : "Активно";
+  }
+  badges.appendChild(badge);
+  if (post.category) {
+    const cat = document.createElement("span");
+    cat.className = "detail-badge category";
+    cat.textContent = post.category;
+    badges.appendChild(cat);
+  }
+  inner.appendChild(badges);
+
+  const titleEl = document.createElement("h3");
+  titleEl.className = "detail-title";
+  titleEl.textContent = post.title;
+  inner.appendChild(titleEl);
+
+  if (post.price) {
+    const priceEl = document.createElement("div");
+    priceEl.className = "detail-price";
+    priceEl.textContent = post.price + " ₽";
+    inner.appendChild(priceEl);
+  }
+
+  const descEl = document.createElement("div");
+  descEl.className = "detail-desc";
+  descEl.innerHTML = sanitizeHtml(post.description || "");
+  if (!descEl.textContent.trim()) descEl.remove();
+  else inner.appendChild(descEl);
+
+  // действия и сообщения — в шапке детали (меню «⋮» и иконка чата)
+
+  body.appendChild(inner);
+  return true;
+}
+
+async function deleteFromDetail(id) {
+  await deletePost(id); // покажет подтверждение и удалит
+  if (root && !posts.some((p) => String(p.id) === String(id))) {
+    ctx.navigate("#/ads");
+  }
+}
+
+// ---------- МЕДИА (клиентский ресайз + превью) ----------
+// Перерисовать содержимое области загрузки в зависимости от состояния.
+function renderMediaPreview() {
+  const label = $(".js-media-label");
+  if (!label) return;
+  label.textContent = "";
+
+  if (selectedImage) {
+    label.classList.add("has-media");
+    const img = document.createElement("img");
+    img.className = "upload-preview";
+    img.alt = "Превью изображения";
+    img.src = selectedImage;
+    const remove = document.createElement("button");
+    remove.type = "button";
+    remove.className = "js-media-remove upload-remove";
+    remove.setAttribute("aria-label", "Удалить изображение");
+    remove.innerHTML = '<svg class="icon"><use href="#i-trash" /></svg>';
+    label.appendChild(img);
+    label.appendChild(remove);
+  } else {
+    label.classList.remove("has-media");
+    label.innerHTML =
+      '<div class="upload-icon"><svg class="icon"><use href="#i-image" /></svg></div><p>Загрузить медиа</p>';
+  }
 }
 
 // ---------- RICH EDITOR ----------
@@ -430,26 +804,69 @@ function wireEvents() {
       if (menu && !wasOpen) menu.classList.add("open");
       return;
     }
+    // overflow-меню «⋮» на странице объявления
+    const detailMenuBtn = e.target.closest(".js-detail-menu-btn");
+    if (detailMenuBtn) {
+      e.stopPropagation();
+      const menu = $(".js-detail-menu");
+      const wasOpen = menu && menu.classList.contains("open");
+      closeAllMenus();
+      if (menu && !wasOpen) menu.classList.add("open");
+      return;
+    }
+    // пункты меню списка (data-menu-action). Пункты меню детали используют
+    // data-act и обрабатываются ниже, поэтому здесь их не перехватываем.
     const item = e.target.closest(".menu-item");
-    if (item) {
+    if (item && item.hasAttribute("data-menu-action")) {
       e.stopPropagation();
       const id = item.getAttribute("data-id");
       const action = item.getAttribute("data-menu-action");
       closeAllMenus();
       if (action === "delete") deletePost(id);
       else if (action === "pin") togglePin(id);
+      else if (action === "edit") ctx.navigate("#/ads/" + id + "/edit");
       return;
     }
     closeAllMenus();
 
-    // действия мини-аппа
+    // действия мини-аппа (кнопки) — приоритетнее клика по карточке
     const actEl = e.target.closest("[data-act]");
-    if (!actEl) return;
-    const act = actEl.getAttribute("data-act");
-    if (act === "home") ctx.navigate("#/");
-    else if (act === "goto-create") ctx.navigate("#/ads/create");
-    else if (act === "goto-list") ctx.navigate("#/ads");
-    else if (act === "create-post") createPost();
+    if (actEl) {
+      const act = actEl.getAttribute("data-act");
+      if (act === "home") ctx.navigate("#/");
+      else if (act === "goto-create") ctx.navigate("#/ads/create");
+      else if (act === "goto-list") ctx.navigate("#/ads");
+      else if (act === "save-post") savePost();
+      else if (act === "goto-edit" && detailId != null)
+        ctx.navigate("#/ads/" + detailId + "/edit");
+      else if (act === "delete-detail" && detailId != null)
+        deleteFromDetail(detailId);
+      else if (act === "toggle-pin-detail" && detailId != null) {
+        togglePin(detailId);
+        renderDetail(detailId); // обновить бейдж и состояние кнопки
+      }
+      else if (act === "create-back")
+        ctx.navigate(editingId != null ? "#/ads/" + editingId : "#/ads");
+      return;
+    }
+
+    // клик по индикатору сообщений — пусть отработает ссылка <a> в чат
+    if (e.target.closest(".post-chats")) return;
+
+    // клик по карточке списка — открыть деталь
+    const card = e.target.closest(".post");
+    if (card && card.dataset.id) ctx.navigate("#/ads/" + card.dataset.id);
+  });
+
+  // открытие карточки с клавиатуры (Enter/Space) — только когда фокус
+  // на самой карточке, а не на вложенной кнопке меню
+  on(root, "keydown", (e) => {
+    if (e.key !== "Enter" && e.key !== " ") return;
+    const card = e.target.closest(".post");
+    if (card && e.target === card && card.dataset.id) {
+      e.preventDefault();
+      ctx.navigate("#/ads/" + card.dataset.id);
+    }
   });
 
   // фильтры
@@ -467,7 +884,27 @@ function wireEvents() {
     currentQuery = e.target.value.toLowerCase().trim().slice(0, 100);
     refresh();
   });
+
+  // фильтр по категории (лента чипов)
+  on($(".js-cat-filters"), "click", (e) => {
+    const chip = e.target.closest(".cat-chip");
+    if (!chip) return;
+    currentCategory = chip.getAttribute("data-category") || "";
+    applyCatActive();
+    refresh();
+  });
 }
+
+// Подсветить активный чип категории по currentCategory.
+function applyCatActive() {
+  $$(".cat-chip").forEach((c) =>
+    c.classList.toggle(
+      "active",
+      (c.getAttribute("data-category") || "") === currentCategory,
+    ),
+  );
+}
+
 
 // ============================================================
 // КОНТРАКТ МИНИ-АППА
@@ -492,7 +929,31 @@ export default {
     // связать input[type=file] с label (без глобального id)
     const media = $(".js-media");
     const label = $(".js-media-label");
-    if (media && label) on(label, "click", () => media.click());
+    if (media && label) {
+      on(label, "click", (e) => {
+        // клик по «крестику» — убрать изображение, не открывать диалог
+        if (e.target.closest(".js-media-remove")) {
+          e.preventDefault();
+          selectedImage = null;
+          media.value = "";
+          renderMediaPreview();
+          return;
+        }
+        media.click();
+      });
+      on(media, "change", async () => {
+        const file = media.files && media.files[0];
+        if (!file) return;
+        try {
+          selectedImage = await resizeImageToDataURL(file);
+          if (!root) return; // размонтировали, пока жали
+          renderMediaPreview();
+        } catch (_) {
+          ctx.toast("Не удалось загрузить изображение", "error");
+        }
+        media.value = ""; // позволить выбрать тот же файл повторно
+      });
+    }
 
     initEditor();
     wireEvents();
@@ -503,7 +964,11 @@ export default {
   },
 
   onRoute(subpath) {
-    showView(subpath[0] === "create" ? "create" : "list");
+    const seg = subpath[0];
+    if (!seg || seg === "list") return enterList();
+    if (seg === "create") return enterCreate();
+    if (subpath[1] === "edit") return enterEdit(seg);
+    return enterDetail(seg);
   },
 
   unmount() {
@@ -512,5 +977,8 @@ export default {
     if (root) root.innerHTML = "";
     root = null;
     ctx = null;
+    selectedImage = null;
+    editingId = null;
+    detailId = null;
   },
 };

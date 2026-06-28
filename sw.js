@@ -10,7 +10,7 @@
 // страницы (тост «Обновить»), чтобы не смешать версии модулей.
 // ============================================================
 
-const VERSION = "v3";
+const VERSION = "v33";
 const SHELL_CACHE = `qwopex-shell-${VERSION}`;
 const RUNTIME_CACHE = `qwopex-runtime-${VERSION}`;
 
@@ -21,9 +21,17 @@ const SHELL_ASSETS = [
   "./styles.css",
   "./manifest.json",
   "./icon.svg",
+  "./icons.svg",
+  "./images/icon-192.png",
+  "./images/icon-512.png",
+  "./images/icon-maskable-512.png",
   "./js/app.js",
   "./js/sdk.js",
   "./js/registry.js",
+  "./js/ui/qx-modal.js",
+  "./js/data/chats-store.js",
+  "./js/data/categories.js",
+  "./js/data/wallet-store.js",
   "./js/apps/ads.js",
   "./js/apps/wallet.js",
   "./js/apps/chats.js",

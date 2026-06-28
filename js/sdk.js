@@ -118,6 +118,56 @@ export function createBus() {
   };
 }
 
+// ---------- Изображения: клиентский ресайз в data URL (JPEG) ----------
+// Хранилище — localStorage, поэтому ужимаем по длинной стороне и жмём.
+// Используется в Объявлениях (медиа) и Чатах (вложения).
+export function resizeImageToDataURL(file, opts = {}) {
+  const maxSide = opts.maxSide || 1024;
+  const quality = opts.quality || 0.75;
+  return new Promise((resolve, reject) => {
+    if (!file || !/^image\//.test(file.type)) {
+      reject(new Error("not-an-image"));
+      return;
+    }
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error("read-failed"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("decode-failed"));
+      img.onload = () => {
+        let { width, height } = img;
+        const longest = Math.max(width, height);
+        if (longest > maxSide) {
+          const scale = maxSide / longest;
+          width = Math.round(width * scale);
+          height = Math.round(height * scale);
+        }
+        const canvas = document.createElement("canvas");
+        canvas.width = width;
+        canvas.height = height;
+        canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+        try {
+          resolve(canvas.toDataURL("image/jpeg", quality));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ---------- Любой файл → data URL (для вложений в чатах) ----------
+export function readFileAsDataURL(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(reader.error || new Error("read-failed"));
+    reader.onload = () => resolve(reader.result);
+    reader.readAsDataURL(file);
+  });
+}
+
 // ============================================================
 // АВТОРИЗАЦИЯ (Telegram Login Widget)
 // Сейчас отключена для локальной разработки — отдаём fake-user.
