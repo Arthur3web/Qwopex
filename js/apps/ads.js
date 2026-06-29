@@ -103,6 +103,7 @@ const TEMPLATE = `
       <h2 class="js-create-title">Создание</h2>
     </div>
 
+    <div class="create-body">
     <div class="create-user">
       <div class="avatar small"><svg class="icon"><use href="#i-user" /></svg></div>
       <div class="create-user-info"><div class="user-id js-user-id"></div></div>
@@ -148,6 +149,7 @@ const TEMPLATE = `
       <svg class="icon"><use href="#i-check" /></svg>
       <span class="js-done-label">Готово</span>
     </button>
+    </div>
   </section>
 `;
 

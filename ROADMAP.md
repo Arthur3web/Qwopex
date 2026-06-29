@@ -147,6 +147,11 @@ export default {
 - [ ] **CI**: lint + headless-проверка установки PWA (Playwright).
 - [~] **Версионирование SW**: `VERSION` в `sw.js` бампается вручную на каждом
       изменении ассетов (сейчас `v47`). Авто-генерация из хэша билда — позже.
+- [ ] **Заголовок `Cache-Control: no-cache` для `sw.js`** на проде. В коде уже
+      есть `updateViaCache: "none"` при регистрации, но серверный заголовок
+      гарантирует, что CDN/прокси не отдадут старый `sw.js` и обновление
+      подхватится надёжно. Формат зависит от хостинга (nginx `location` /
+      Netlify `_headers` / `vercel.json` / `.htaccess`) — выбрать при деплое.
 - [ ] **Телеметрия ошибок** (Sentry или self-hosted), respecting CSP
       (`connect-src` для эндпоинта).
 - [ ] **Тесты**: unit на `sanitizeHtml`/`clampInt`, e2e на ключевые сценарии.

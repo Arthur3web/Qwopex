@@ -18,8 +18,14 @@ const view = document.getElementById("view");
 const shellTop = document.getElementById("shell-top");
 const bus = createBus();
 
+// Версия приложения для подвала лаунчера.
+// ВАЖНО: держать синхронной с VERSION в sw.js — кэши SW завязаны на неё.
+const APP_VERSION = "v48";
+
 let currentAppId = null; // id смонтированного мини-аппа (null = лаунчер)
 let currentModule = null; // его default export
+let swRegistration = null; // активная регистрация SW (для ручной проверки обновлений)
+let autoApplyUpdate = false; // true когда пользователь сам нажал «Проверить» — применяем без тоста
 
 // ---------- ТЕМА ----------
 function applyTheme() {
@@ -163,6 +169,12 @@ function renderLauncher() {
           <div class="launcher-title">Сервисы</div>
           <div class="app-grid">${tiles}</div>
         </div>
+
+        <footer class="app-footer">
+          <span class="app-version">Qwopex ${APP_VERSION}</span>
+          <span class="app-footer-sep" aria-hidden="true">·</span>
+          <button class="update-check" type="button">Проверить обновления</button>
+        </footer>
       </div>
     </section>
   `;
@@ -253,20 +265,45 @@ function initServiceWorker() {
   if (!("serviceWorker" in navigator)) return;
 
   navigator.serviceWorker
-    .register("sw.js")
+    // updateViaCache: "none" — браузер всегда тянет свежий sw.js при проверке,
+    // иначе HTTP-кэш может маскировать новую версию и обновление «не видно».
+    .register("sw.js", { updateViaCache: "none" })
     .then((reg) => {
+      swRegistration = reg;
+
+      // Обновление могло установиться в прошлый визит и уже ждать активации —
+      // updatefound в этом случае не сработает, проверяем явно при старте.
+      if (reg.waiting && navigator.serviceWorker.controller) {
+        showUpdateToast(reg.waiting);
+      }
+
       // Новая версия найдена — ждём установки и предлагаем обновиться
       reg.addEventListener("updatefound", () => {
         const sw = reg.installing;
         if (!sw) return;
         sw.addEventListener("statechange", () => {
           if (sw.state === "installed" && navigator.serviceWorker.controller) {
-            showUpdateToast(sw);
+            // Если проверку запустил сам пользователь — применяем без тоста
+            if (autoApplyUpdate) {
+              autoApplyUpdate = false;
+              sw.postMessage({ type: "SKIP_WAITING" });
+            } else {
+              showUpdateToast(sw);
+            }
           }
         });
       });
     })
     .catch((err) => console.warn("SW register failed:", err));
+
+  // Активная проверка при возврате в приложение: браузер сам опрашивает sw.js
+  // лишь при загрузке и ~раз в сутки, поэтому у установленного PWA, которое
+  // не перезагружается, обновление иначе можно не заметить.
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "visible" && swRegistration) {
+      swRegistration.update().catch(() => {});
+    }
+  });
 
   // После активации нового SW — перезагрузка один раз
   let reloaded = false;
@@ -294,6 +331,44 @@ function showUpdateToast(sw) {
   });
 }
 
+// Ручная проверка обновлений (кнопка в подвале лаунчера).
+// Браузер сам опрашивает sw.js лишь при загрузке и ~раз в сутки — кнопка даёт
+// пользователю опросить сервер принудительно, когда тост не появился.
+async function checkForUpdates(btn) {
+  if (!("serviceWorker" in navigator) || !swRegistration) {
+    toast("Обновления недоступны", "error");
+    return;
+  }
+  // Готовое обновление уже ждёт активации — применяем сразу
+  if (swRegistration.waiting) {
+    swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+    toast("Применяем обновление…", "info");
+    return;
+  }
+  if (btn) btn.disabled = true;
+  try {
+    autoApplyUpdate = true; // найденное обновление применится без тоста
+    await swRegistration.update();
+    if (swRegistration.waiting) {
+      // успело доустановиться синхронно
+      swRegistration.waiting.postMessage({ type: "SKIP_WAITING" });
+      toast("Применяем обновление…", "info");
+    } else if (swRegistration.installing) {
+      // ещё ставится — применится через statechange (autoApplyUpdate)
+      toast("Найдено обновление, устанавливаем…", "info");
+    } else {
+      autoApplyUpdate = false;
+      toast("У вас актуальная версия", "success");
+    }
+  } catch (e) {
+    autoApplyUpdate = false;
+    console.warn("Проверка обновлений не удалась:", e);
+    toast("Не удалось проверить обновление", "error");
+  } finally {
+    if (btn) btn.disabled = false;
+  }
+}
+
 // ---------- SVG-СПРАЙТ ИКОНОК ----------
 // Спрайт вынесен в icons.svg и инъектируется в DOM до первого рендера,
 // чтобы все ссылки <use href="#i-…"> резолвились как раньше (внутри документа).
@@ -319,6 +394,9 @@ function wireLauncherStats() {
   view.addEventListener("click", (e) => {
     const stat = e.target.closest(".stat[data-filter]");
     if (stat) setPendingFilter(stat.getAttribute("data-filter"));
+
+    const upd = e.target.closest(".update-check");
+    if (upd) checkForUpdates(upd);
   });
 }
 
