@@ -232,7 +232,8 @@ function renderPosts(data) {
       content.appendChild(statusEl);
     }
 
-    // индикатор сообщений по объявлению (данные из мини-аппа «Чаты»)
+    // индикатор сообщений по объявлению (данные из мини-аппа «Чаты»):
+    // счётчик-бейдж показываем только при непрочитанных.
     const info = adMessageInfo(post.id);
     if (info.count > 0) {
       const chats = document.createElement("a");
@@ -583,7 +584,8 @@ function renderDetail(id) {
     }
   }
 
-  // иконка сообщений в шапке с бейджем непрочитанных
+  // иконка сообщений в шапке: бейдж с числом непрочитанных показываем
+  // только когда есть новые; всё прочитано → белая иконка без счётчика.
   const info = adMessageInfo(post.id);
   const chatsBtn = $(".js-detail-chats");
   const chatsBadge = $(".js-detail-chats-badge");
@@ -591,7 +593,6 @@ function renderDetail(id) {
     if (info.count > 0) {
       chatsBtn.hidden = false;
       chatsBtn.href = "#/chats/" + info.dialogId;
-      // подсвечиваем иконку только при наличии непрочитанных
       chatsBtn.classList.toggle("has-unread", info.unread > 0);
       if (info.unread > 0 && chatsBadge) {
         chatsBadge.hidden = false;

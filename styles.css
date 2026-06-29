@@ -1345,6 +1345,12 @@ body.light .menu-item:hover {
   align-items: center;
   justify-content: center;
 }
+/* display:inline-flex перебивает браузерное [hidden]{display:none},
+   поэтому скрытие через атрибут hidden возвращаем явно (иначе пустой
+   бейдж рисуется синим кружком на прочитанных объявлениях) */
+.detail-chats-badge[hidden] {
+  display: none;
+}
 
 /* Индикатор сообщений на карточке списка */
 .post-chats {
