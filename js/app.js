@@ -7,7 +7,11 @@
 import { REGISTRY, getApp } from "./registry.js";
 import { auth, createBus, escapeHtml } from "./sdk.js";
 import { getState as getWalletState } from "./data/wallet-store.js";
-import { counts as adsCounts, setPendingFilter } from "./data/ads-store.js";
+import {
+  counts as adsCounts,
+  setPendingFilter,
+  setAdDraft,
+} from "./data/ads-store.js";
 import { totalUnread as chatsUnread } from "./data/chats-store.js";
 
 const view = document.getElementById("view");
@@ -318,6 +322,28 @@ function wireLauncherStats() {
   });
 }
 
+// ---------- SHARE TARGET ----------
+// Принимаем расшаренные title/text/url (manifest share_target, GET) и
+// открываем форму создания объявления с предзаполнением. Возвращает true,
+// если был шер (тогда маршрут уже задан на создание).
+function handleShareTarget() {
+  const params = new URLSearchParams(location.search);
+  const title = (params.get("title") || "").trim();
+  const text = (params.get("text") || "").trim();
+  const url = (params.get("url") || "").trim();
+  if (!title && !text && !url) return false;
+
+  const description = [text, url].filter(Boolean).join("\n");
+  setAdDraft({
+    title: title || text.split("\n")[0],
+    description: title ? description : url, // если текст ушёл в заголовок
+  });
+  // убрать query, чтобы шер не сработал повторно при навигации
+  history.replaceState(null, "", location.pathname);
+  location.hash = "#/ads/create";
+  return true;
+}
+
 // ---------- СТАРТ ----------
 async function start() {
   applyTheme();
@@ -325,6 +351,7 @@ async function start() {
   wireShellTop();
   wireLauncherStats();
   window.addEventListener("hashchange", route);
+  handleShareTarget();
   // первый маршрут (если пусто — лаунчер)
   if (!location.hash) location.hash = "#/";
   route();

@@ -20,7 +20,12 @@ import {
 import { confirmDialog } from "../ui/qx-modal.js";
 import { adMessageInfo } from "../data/chats-store.js";
 import { CATEGORIES } from "../data/categories.js";
-import { getPosts, savePosts, takePendingFilter } from "../data/ads-store.js";
+import {
+  getPosts,
+  savePosts,
+  takePendingFilter,
+  takeAdDraft,
+} from "../data/ads-store.js";
 
 const TEMPLATE = `
   <section class="page posts-page" data-view="list">
@@ -519,6 +524,19 @@ function enterCreate() {
   editingId = null;
   resetForm();
   setCreateMode(false);
+
+  // предзаполнение из Share Target (расшаренные текст/ссылка)
+  const draft = takeAdDraft();
+  if (draft) {
+    const titleEl = $(".js-title");
+    const descEl = $(".js-description");
+    if (titleEl && draft.title) titleEl.value = draft.title.slice(0, LIMITS.title);
+    if (descEl && draft.description) {
+      descEl.textContent = draft.description.slice(0, LIMITS.description);
+      descEl.classList.remove("is-empty");
+    }
+  }
+
   showView("create");
   const titleEl = $(".js-title");
   if (titleEl) titleEl.focus();

@@ -12,6 +12,15 @@
   "theme_color": "#0f1115",
   "lang": "ru",
   "categories": ["shopping", "social", "finance"],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
   "icons": [
     {
       "src": "icon.svg",

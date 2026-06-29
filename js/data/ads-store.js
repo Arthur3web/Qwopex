@@ -65,6 +65,18 @@ export function takePendingFilter() {
   return f;
 }
 
+// Черновик объявления из Share Target (расшаренные текст/ссылка).
+// Заполняет форму создания при входе в неё.
+let adDraft = null;
+export function setAdDraft(draft) {
+  adDraft = draft;
+}
+export function takeAdDraft() {
+  const d = adDraft;
+  adDraft = null;
+  return d;
+}
+
 // Счётчики для фильтров и лаунчера.
 export function counts() {
   const posts = getPosts();
