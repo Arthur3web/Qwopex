@@ -43,12 +43,15 @@ const TEMPLATE = `
       <span class="search-icon"><svg class="icon"><use href="#i-search" /></svg></span>
       <input type="text" class="posts-search" placeholder="Поиск"
              maxlength="100" autocomplete="off" spellcheck="false" />
+      <button type="button" class="search-clear js-search-clear" aria-label="Очистить">
+        <svg class="icon"><use href="#i-close" /></svg>
+      </button>
     </div>
 
     <div class="filter-label">Категория</div>
     <div class="cat-filters js-cat-filters">
-      <button class="chip cat-chip active" data-category="">Все</button>
-      ${CATEGORIES.map((c) => '<button class="chip cat-chip" data-category="' + escapeHtml(c) + '">' + escapeHtml(c) + "</button>").join("")}
+      <button class="chip cat-chip active" data-category="">Все <span class="chip-count" data-cat-count="">0</span></button>
+      ${CATEGORIES.map((c) => '<button class="chip cat-chip" data-category="' + escapeHtml(c) + '">' + escapeHtml(c) + ' <span class="chip-count" data-cat-count="' + escapeHtml(c) + '">0</span></button>').join("")}
     </div>
 
     <div class="filter-label">Статус</div>
@@ -359,6 +362,19 @@ function updateFilterCounts() {
     const el = $('[data-count="' + k + '"]');
     if (el) el.textContent = counts[k];
   });
+  // категории: счётчик у каждого чипа + прячем пустые (кроме «Все»)
+  const catCounts = {};
+  posts.forEach((p) => {
+    if (p.category) catCounts[p.category] = (catCounts[p.category] || 0) + 1;
+  });
+  $$(".cat-chip").forEach((chip) => {
+    const cat = chip.getAttribute("data-category") || "";
+    const countEl = chip.querySelector("[data-cat-count]");
+    const n = cat === "" ? posts.length : catCounts[cat] || 0;
+    if (countEl) countEl.textContent = n;
+    // «Все» показываем всегда; пустые категории скрываем
+    chip.hidden = cat !== "" && n === 0;
+  });
   // только статусные чипы (категорийные .chip живут в .js-cat-filters)
   $$(".js-filters .chip").forEach((chip) => {
     chip.classList.toggle(
@@ -650,9 +666,17 @@ function renderDetail(id) {
     badge.textContent = "На модерации";
   } else {
     badge.className = "detail-badge active";
-    badge.textContent = post.pinned ? "Активно · закреплено" : "Активно";
+    badge.textContent = "Активно";
   }
   badges.appendChild(badge);
+  // «Закреплено» — отдельным бейджем, чтобы не сливалось со статусом
+  if (post.pinned) {
+    const pin = document.createElement("span");
+    pin.className = "detail-badge pinned";
+    pin.innerHTML =
+      '<svg class="icon"><use href="#i-pin" /></svg><span>Закреплено</span>';
+    badges.appendChild(pin);
+  }
   if (post.category) {
     const cat = document.createElement("span");
     cat.className = "detail-badge category";
@@ -901,6 +925,16 @@ function wireEvents() {
   on($(".posts-search"), "input", (e) => {
     currentQuery = e.target.value.toLowerCase().trim().slice(0, 100);
     refresh();
+  });
+
+  // крестик очистки внутри поля поиска
+  on($(".js-search-clear"), "click", () => {
+    const input = $(".posts-search");
+    if (!input) return;
+    input.value = "";
+    currentQuery = "";
+    refresh();
+    input.focus();
   });
 
   // фильтр по категории (лента чипов)

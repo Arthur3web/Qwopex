@@ -83,6 +83,9 @@ const TEMPLATE = `
       <span class="search-icon"><svg class="icon"><use href="#i-search" /></svg></span>
       <input type="text" class="posts-search js-market-search" placeholder="Поиск товаров"
              maxlength="100" autocomplete="off" spellcheck="false" />
+      <button type="button" class="search-clear js-search-clear" aria-label="Очистить">
+        <svg class="icon"><use href="#i-close" /></svg>
+      </button>
     </div>
     <div class="filters js-categories"></div>
     <div class="market-grid js-market-grid"></div>
@@ -150,6 +153,9 @@ function categories() {
 function renderCategories() {
   const box = $(".js-categories");
   if (!box) return;
+  // счётчик товаров в категории («Все» — всего)
+  const countFor = (c) =>
+    c === "Все" ? PRODUCTS.length : PRODUCTS.filter((p) => p.category === c).length;
   box.innerHTML = categories()
     .map(
       (c) =>
@@ -159,7 +165,9 @@ function renderCategories() {
         escapeHtml(c) +
         '">' +
         escapeHtml(c) +
-        "</button>",
+        ' <span class="chip-count">' +
+        countFor(c) +
+        "</span></button>",
     )
     .join("");
 }
@@ -333,6 +341,16 @@ function wireEvents() {
   on($(".js-market-search"), "input", (e) => {
     currentQuery = e.target.value.toLowerCase().trim().slice(0, 100);
     renderGrid();
+  });
+
+  // крестик очистки внутри поля поиска
+  on($(".js-search-clear"), "click", () => {
+    const input = $(".js-market-search");
+    if (!input) return;
+    input.value = "";
+    currentQuery = "";
+    renderGrid();
+    input.focus();
   });
 
   on(root, "click", (e) => {

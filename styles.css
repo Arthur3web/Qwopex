@@ -14,6 +14,13 @@
   --success: #00ff88;
   --success-soft: rgba(0, 255, 136, 0.14);
   --danger: #ff453a;
+  /* статус «на модерации» */
+  --warning: #ff9f0a;
+  --warning-soft: rgba(255, 159, 10, 0.16);
+  /* акцент «закреплено» (красный пин) */
+  --pin: #ff2d55;
+  /* приподнятая поверхность (ховер чипов и т.п.) */
+  --surface-3: #3a3d45;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -28,6 +35,8 @@ body.light {
   /* неоновый #00ff88 на белом не читается — берём насыщенный тёмно-зелёный */
   --success: #0a9d4f;
   --success-soft: rgba(10, 157, 79, 0.16);
+  /* приподнятая поверхность для светлой темы */
+  --surface-3: #e4e6ea;
 }
 
 * {
@@ -554,13 +563,49 @@ body.light .theme-btn .theme-icon-light {
 .posts-search {
   width: 100%;
   height: 38px;
-  padding: 0 12px 0 40px;
+  padding: 0 40px 0 40px;
   background: var(--surface-2);
   border: none;
   border-radius: 10px;
   color: var(--text);
   font-size: 15px;
   outline: none;
+}
+
+/* Кнопка очистки поиска: видна только когда в поле что-то введено
+   (input показывает placeholder, только когда пуст → :placeholder-shown). */
+.search-clear {
+  position: absolute;
+  right: 26px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.14);
+  color: var(--text-muted);
+}
+.search-clear .icon {
+  width: 13px;
+  height: 13px;
+}
+.search-clear:hover {
+  background: rgba(255, 255, 255, 0.22);
+  color: var(--text);
+}
+.posts-search:not(:placeholder-shown) ~ .search-clear {
+  display: inline-flex;
+}
+body.light .search-clear {
+  background: rgba(0, 0, 0, 0.08);
+}
+body.light .search-clear:hover {
+  background: rgba(0, 0, 0, 0.14);
 }
 .posts-search:focus-visible {
   outline: 2px solid var(--accent-soft);
@@ -581,7 +626,7 @@ body.light .theme-btn .theme-icon-light {
 .cat-filters {
   display: flex;
   gap: 6px;
-  padding: 0 16px 8px;
+  padding: 0 16px 10px;
   background: var(--surface);
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
@@ -597,7 +642,7 @@ body.light .theme-btn .theme-icon-light {
 .filters {
   display: flex;
   gap: 6px;
-  padding: 0 16px 12px;
+  padding: 0 16px 10px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   overflow-x: auto;
@@ -610,12 +655,13 @@ body.light .theme-btn .theme-icon-light {
 
 .chip {
   flex-shrink: 0;
-  background: var(--border);
+  background: var(--surface-2);
   border: 1px solid transparent;
-  color: #c9ccd1;
-  padding: 6px 10px;
+  color: var(--text);
+  padding: 7px 14px;
   border-radius: 999px;
   font-size: 13px;
+  font-weight: 500;
   font-family: inherit;
   display: inline-flex;
   align-items: center;
@@ -652,19 +698,24 @@ body.light .theme-btn .theme-icon-light {
   }
 }
 
+/* display:inline-flex перебивает [hidden]{display:none} — возвращаем явно
+   (используется для скрытия пустых категорий в фильтре) */
+.chip[hidden] {
+  display: none;
+}
 .chip:hover {
-  background: #3a3a3c;
-  color: var(--text);
+  background: var(--surface-3);
 }
 
 .chip.active {
   background: var(--accent);
-  color: var(--text);
+  color: #fff;
   border-color: var(--accent);
+  font-weight: 600;
 }
 
 .chip-count {
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.12);
   color: inherit;
   font-size: 11px;
   padding: 1px 6px;
@@ -684,12 +735,12 @@ body.light .filters {
 }
 
 body.light .chip {
-  background: #f4f5f7;
-  color: #4b5563;
+  background: #eef1f7;
+  border-color: transparent;
+  color: #374151;
 }
 
 body.light .chip:hover {
-  background: #e4e6ea;
   color: #111;
 }
 
@@ -757,7 +808,7 @@ body.light .chip.active .chip-count {
 }
 
 .pin-icon {
-  color: #ff2d55;
+  color: var(--pin);
   fill: currentColor;
   stroke: none;
   width: 14px;
@@ -792,7 +843,7 @@ body.light .chip.active .chip-count {
 
 .post-status {
   font-size: 13px;
-  color: #ff9f0a;
+  color: var(--warning);
   margin-top: 4px;
 }
 
@@ -1283,8 +1334,23 @@ body.light .menu-item:hover {
   color: var(--success);
 }
 .detail-badge.moderation {
-  background: rgba(255, 159, 10, 0.16);
-  color: #ff9f0a;
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+/* «Закреплено» — отдельный нейтральный бейдж с красным пином */
+.detail-badge.pinned {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--surface-2);
+  color: var(--text);
+}
+.detail-badge.pinned .icon {
+  width: 13px;
+  height: 13px;
+  color: var(--pin);
+  fill: currentColor;
+  stroke: none;
 }
 
 .detail-title {
