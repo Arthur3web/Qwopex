@@ -79,6 +79,11 @@ const TEMPLATE = `
       </button>
       <h2>Маркет</h2>
     </div>
+    <div class="search-container">
+      <span class="search-icon"><svg class="icon"><use href="#i-search" /></svg></span>
+      <input type="text" class="posts-search js-market-search" placeholder="Поиск товаров"
+             maxlength="100" autocomplete="off" spellcheck="false" />
+    </div>
     <div class="filters js-categories"></div>
     <div class="market-grid js-market-grid"></div>
   </section>
@@ -97,6 +102,7 @@ const TEMPLATE = `
 let root = null;
 let ctx = null;
 let currentCategory = "Все";
+let currentQuery = "";
 let currentProductId = null;
 const cleanups = [];
 
@@ -163,10 +169,16 @@ function renderGrid() {
   if (!grid) return;
   grid.textContent = "";
 
-  const list =
+  let list =
     currentCategory === "Все"
       ? PRODUCTS
       : PRODUCTS.filter((p) => p.category === currentCategory);
+
+  if (currentQuery) {
+    list = list.filter((p) =>
+      (p.title + " " + p.seller).toLowerCase().includes(currentQuery),
+    );
+  }
 
   if (!list.length) {
     const empty = document.createElement("div");
@@ -318,6 +330,11 @@ function wireEvents() {
     renderCatalog();
   });
 
+  on($(".js-market-search"), "input", (e) => {
+    currentQuery = e.target.value.toLowerCase().trim().slice(0, 100);
+    renderGrid();
+  });
+
   on(root, "click", (e) => {
     const actEl = e.target.closest("[data-act]");
     if (!actEl) return;
@@ -337,6 +354,9 @@ export default {
     root = mountRoot;
     ctx = context;
     root.innerHTML = TEMPLATE;
+    // сброс фильтров при входе (модуль живёт между монтированиями)
+    currentCategory = "Все";
+    currentQuery = "";
     wireEvents();
     this.onRoute(context.subpath || []);
   },
