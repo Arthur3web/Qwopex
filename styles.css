@@ -34,11 +34,19 @@ body.light {
   box-sizing: border-box;
 }
 
+html {
+  height: 100%;
+}
+
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  /* Фиксируем высоту окна: страница не растёт под контент, а внутренние
+     контейнеры (списки/история) скроллятся сами. */
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   display: flex;
@@ -48,6 +56,10 @@ body {
 
 main {
   flex: 1;
+  /* min-height:0 обязателен: иначе flex-элемент раздувается под контент
+     (min-height:auto) и внутренние списки не получают ограниченную высоту
+     для собственного скролла. */
+  min-height: 0;
   display: flex;
   flex-direction: column;
   position: relative;
@@ -146,6 +158,78 @@ body.light .icon-btn:hover {
 
 .page.active {
   display: flex;
+}
+
+/* Тонкий полупрозрачный скролл поверх контента — вместо широкого системного
+   жёлоба, который ужимает контент в отдельную колонку. Полоса накладывается
+   на правый край области прокрутки (market-grid, история кошелька и т.п.). */
+.content,
+.market-grid,
+.market-product,
+.posts-list,
+.detail-body,
+.create-page,
+.chats-list,
+.chat-messages,
+.wallet-ops {
+  scrollbar-width: thin; /* Firefox */
+  scrollbar-color: rgba(255, 255, 255, 0.28) transparent;
+}
+.content::-webkit-scrollbar,
+.market-grid::-webkit-scrollbar,
+.market-product::-webkit-scrollbar,
+.posts-list::-webkit-scrollbar,
+.detail-body::-webkit-scrollbar,
+.create-page::-webkit-scrollbar,
+.chats-list::-webkit-scrollbar,
+.chat-messages::-webkit-scrollbar,
+.wallet-ops::-webkit-scrollbar {
+  width: 6px;
+}
+.content::-webkit-scrollbar-track,
+.market-grid::-webkit-scrollbar-track,
+.market-product::-webkit-scrollbar-track,
+.posts-list::-webkit-scrollbar-track,
+.detail-body::-webkit-scrollbar-track,
+.create-page::-webkit-scrollbar-track,
+.chats-list::-webkit-scrollbar-track,
+.chat-messages::-webkit-scrollbar-track,
+.wallet-ops::-webkit-scrollbar-track {
+  background: transparent;
+}
+.content::-webkit-scrollbar-thumb,
+.market-grid::-webkit-scrollbar-thumb,
+.market-product::-webkit-scrollbar-thumb,
+.posts-list::-webkit-scrollbar-thumb,
+.detail-body::-webkit-scrollbar-thumb,
+.create-page::-webkit-scrollbar-thumb,
+.chats-list::-webkit-scrollbar-thumb,
+.chat-messages::-webkit-scrollbar-thumb,
+.wallet-ops::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.28);
+  border-radius: 3px;
+}
+body.light .content,
+body.light .market-grid,
+body.light .market-product,
+body.light .posts-list,
+body.light .detail-body,
+body.light .create-page,
+body.light .chats-list,
+body.light .chat-messages,
+body.light .wallet-ops {
+  scrollbar-color: rgba(0, 0, 0, 0.28) transparent;
+}
+body.light .content::-webkit-scrollbar-thumb,
+body.light .market-grid::-webkit-scrollbar-thumb,
+body.light .market-product::-webkit-scrollbar-thumb,
+body.light .posts-list::-webkit-scrollbar-thumb,
+body.light .detail-body::-webkit-scrollbar-thumb,
+body.light .create-page::-webkit-scrollbar-thumb,
+body.light .chats-list::-webkit-scrollbar-thumb,
+body.light .chat-messages::-webkit-scrollbar-thumb,
+body.light .wallet-ops::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.28);
 }
 
 /* ====================== LOGIN ====================== */
@@ -272,6 +356,8 @@ body.light .theme-btn .theme-icon-light {
 
 .content {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   padding: 20px;
@@ -1126,6 +1212,7 @@ body.light .menu-item:hover {
 
 .detail-body {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1234,7 +1321,12 @@ body.light .menu-item:hover {
 .detail-chats-btn {
   position: relative;
 }
+/* по умолчанию иконка нейтральная (как остальные в шапке);
+   акцентом «горит» только когда есть непрочитанные сообщения */
 .detail-chats-btn .icon {
+  color: inherit;
+}
+.detail-chats-btn.has-unread .icon {
   color: var(--accent-soft);
 }
 .detail-chats-badge {
@@ -1310,6 +1402,9 @@ body.light .menu-item:hover {
   overflow-y: auto;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
+  /* строки по содержимому: иначе в скролл-контейнере фиксированной высоты
+     ряды сжимаются под доступную высоту вместо переполнения и скролла */
+  grid-auto-rows: max-content;
   gap: 12px;
   padding: 16px;
   align-content: start;
@@ -1363,6 +1458,7 @@ body.light .menu-item:hover {
 /* карточка товара */
 .market-product {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 .market-product-image {
@@ -1758,6 +1854,7 @@ body.light .date {
 /* --- список диалогов --- */
 .chats-list {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
@@ -1871,6 +1968,7 @@ body.light .date {
 
 .chat-messages {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding: 16px;
   display: flex;
@@ -2064,6 +2162,7 @@ body.light .date {
 
 /* кошелёк */
 .wallet-card {
+  flex-shrink: 0;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -2094,11 +2193,28 @@ body.light .date {
 
 .wallet-body {
   flex: 1;
-  overflow-y: auto;
+  min-height: 0;
+  overflow: hidden;
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+/* Карточка баланса закреплена сверху, скроллится только история операций. */
+.wallet-history {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.wallet-ops {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  /* запас справа, чтобы полоса прокрутки не перекрывала суммы у края */
+  padding-right: 10px;
 }
 
 .wallet-card-actions {

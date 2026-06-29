@@ -573,6 +573,8 @@ function renderDetail(id) {
     if (info.count > 0) {
       chatsBtn.hidden = false;
       chatsBtn.href = "#/chats/" + info.dialogId;
+      // подсвечиваем иконку только при наличии непрочитанных
+      chatsBtn.classList.toggle("has-unread", info.unread > 0);
       if (info.unread > 0 && chatsBadge) {
         chatsBadge.hidden = false;
         chatsBadge.textContent = info.unread;
@@ -581,6 +583,7 @@ function renderDetail(id) {
       }
     } else {
       chatsBtn.hidden = true;
+      chatsBtn.classList.remove("has-unread");
     }
   }
 
