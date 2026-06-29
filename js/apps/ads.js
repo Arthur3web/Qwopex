@@ -15,45 +15,12 @@ import {
   sanitizeHtml,
   clampInt,
   genId,
-  createStorage,
   resizeImageToDataURL,
 } from "../sdk.js";
 import { confirmDialog } from "../ui/qx-modal.js";
 import { adMessageInfo } from "../data/chats-store.js";
 import { CATEGORIES } from "../data/categories.js";
-
-const store = createStorage("ads");
-
-// ---------- Демоданные (потом заменить на загрузку с бэкенда) ----------
-const SEED = [
-  {
-    id: 1,
-    title: "Закреплённое объявление",
-    description: "<b>Пример</b> закреплённого поста",
-    price: 1500,
-    category: "Электроника",
-    pinned: true,
-    status: "active",
-  },
-  {
-    id: 2,
-    title: "Активное объявление",
-    description: "Пример <i>активного</i> поста",
-    price: 2000,
-    category: "Дом",
-    pinned: false,
-    status: "active",
-  },
-  {
-    id: 3,
-    title: "На проверке",
-    description: "Ожидает модерации",
-    price: 999,
-    category: "Услуги",
-    pinned: false,
-    status: "moderation",
-  },
-];
+import { getPosts, savePosts, takePendingFilter } from "../data/ads-store.js";
 
 const TEMPLATE = `
   <section class="page posts-page" data-view="list">
@@ -134,11 +101,8 @@ const TEMPLATE = `
     </div>
 
     <div class="upload-box">
-      <input type="file" class="js-media" hidden accept="image/*" />
-      <label class="upload-area js-media-label">
-        <div class="upload-icon"><svg class="icon"><use href="#i-image" /></svg></div>
-        <p>Загрузить медиа</p>
-      </label>
+      <input type="file" class="js-media" hidden accept="image/*" multiple />
+      <div class="media-grid js-media-grid"></div>
     </div>
 
     <div class="form">
@@ -185,7 +149,8 @@ let posts = [];
 let currentFilter = "all"; // all | active | moderation | pinned
 let currentQuery = "";
 let currentCategory = ""; // фильтр по категории ("" = все)
-let selectedImage = null; // data URL выбранного/сжатого изображения для формы
+let selectedImages = []; // data URL выбранных/сжатых изображений для формы
+const MEDIA_MAX = 8; // максимум фото в объявлении
 let editingId = null; // id редактируемого объявления (null = создание нового)
 let detailId = null; // id объявления, открытого в карточке-детали
 const cleanups = [];
@@ -220,14 +185,7 @@ function renderPosts(data) {
     div.setAttribute("role", "button");
     div.setAttribute("tabindex", "0");
 
-    if (post.image) {
-      const thumb = document.createElement("img");
-      thumb.className = "post-thumb";
-      thumb.alt = "";
-      thumb.loading = "lazy";
-      thumb.src = post.image;
-      div.appendChild(thumb);
-    }
+    // изображение в списке не показываем — его видно при раскрытии объявления
 
     const content = document.createElement("div");
     content.className = "post-content";
@@ -329,7 +287,7 @@ function closeAllMenus() {
 }
 
 function persist() {
-  store.set("posts", posts);
+  savePosts(posts);
 }
 
 async function deletePost(id) {
@@ -457,7 +415,7 @@ function readForm() {
     description: descriptionText ? descriptionHtml : "",
     price,
     category,
-    image: selectedImage || "",
+    images: selectedImages.slice(),
   };
 }
 
@@ -516,7 +474,7 @@ function resetForm() {
   if (priceEl) priceEl.value = "";
   const categoryEl = $(".js-category");
   if (categoryEl) categoryEl.value = "";
-  selectedImage = null;
+  selectedImages = [];
   renderMediaPreview();
 }
 
@@ -533,7 +491,11 @@ function fillForm(post) {
   }
   if (priceEl) priceEl.value = post.price || "";
   if (categoryEl) categoryEl.value = post.category || "";
-  selectedImage = post.image || null;
+  selectedImages = post.images
+    ? post.images.slice()
+    : post.image
+      ? [post.image]
+      : [];
   renderMediaPreview();
 }
 
@@ -622,12 +584,36 @@ function renderDetail(id) {
     }
   }
 
-  if (post.image) {
-    const img = document.createElement("img");
-    img.className = "detail-image";
-    img.alt = "";
-    img.src = post.image;
-    body.appendChild(img);
+  // галерея изображений (поддержка старого одиночного post.image)
+  const images = post.images || (post.image ? [post.image] : []);
+  if (images.length) {
+    const wrap = document.createElement("div");
+    wrap.className = "detail-gallery-wrap";
+
+    const gallery = document.createElement("div");
+    gallery.className = "detail-gallery" + (images.length > 1 ? " multi" : "");
+    images.forEach((src) => {
+      const img = document.createElement("img");
+      img.className = "detail-image";
+      img.alt = "";
+      img.loading = "lazy";
+      img.src = src;
+      gallery.appendChild(img);
+    });
+    wrap.appendChild(gallery);
+
+    if (images.length > 1) {
+      const counter = document.createElement("div");
+      counter.className = "gallery-counter";
+      counter.textContent = "1 / " + images.length;
+      gallery.addEventListener("scroll", () => {
+        const idx = Math.round(gallery.scrollLeft / gallery.clientWidth);
+        counter.textContent = Math.min(idx + 1, images.length) + " / " + images.length;
+      });
+      wrap.appendChild(counter);
+    }
+
+    body.appendChild(wrap);
   }
 
   const inner = document.createElement("div");
@@ -685,29 +671,39 @@ async function deleteFromDetail(id) {
 }
 
 // ---------- МЕДИА (клиентский ресайз + превью) ----------
-// Перерисовать содержимое области загрузки в зависимости от состояния.
+// Сетка выбранных фото с кнопкой удаления у каждого + плитка «добавить».
 function renderMediaPreview() {
-  const label = $(".js-media-label");
-  if (!label) return;
-  label.textContent = "";
+  const grid = $(".js-media-grid");
+  if (!grid) return;
+  grid.textContent = "";
 
-  if (selectedImage) {
-    label.classList.add("has-media");
+  selectedImages.forEach((url, i) => {
+    const cell = document.createElement("div");
+    cell.className = "media-thumb";
     const img = document.createElement("img");
-    img.className = "upload-preview";
-    img.alt = "Превью изображения";
-    img.src = selectedImage;
+    img.alt = "";
+    img.src = url;
     const remove = document.createElement("button");
     remove.type = "button";
-    remove.className = "js-media-remove upload-remove";
-    remove.setAttribute("aria-label", "Удалить изображение");
+    remove.className = "js-media-remove media-thumb-remove";
+    remove.setAttribute("data-index", i);
+    remove.setAttribute("aria-label", "Убрать фото");
     remove.innerHTML = '<svg class="icon"><use href="#i-trash" /></svg>';
-    label.appendChild(img);
-    label.appendChild(remove);
-  } else {
-    label.classList.remove("has-media");
-    label.innerHTML =
-      '<div class="upload-icon"><svg class="icon"><use href="#i-image" /></svg></div><p>Загрузить медиа</p>';
+    cell.appendChild(img);
+    cell.appendChild(remove);
+    grid.appendChild(cell);
+  });
+
+  if (selectedImages.length < MEDIA_MAX) {
+    const add = document.createElement("button");
+    add.type = "button";
+    const empty = selectedImages.length === 0;
+    add.className = "js-media-add media-add" + (empty ? " media-add--empty" : "");
+    add.innerHTML =
+      '<svg class="icon"><use href="#i-image" /></svg><span>' +
+      (empty ? "Загрузить фото" : "Добавить") +
+      "</span>";
+    grid.appendChild(add);
   }
 }
 
@@ -915,8 +911,14 @@ export default {
     ctx = context;
     root.innerHTML = TEMPLATE;
 
-    // данные: из хранилища или сид
-    posts = store.get("posts", null) || SEED.slice();
+    // данные из общего стора
+    posts = getPosts();
+
+    // сброс фильтров при каждом входе (модуль живёт между монтированиями,
+    // иначе фильтры «залипают»); учитываем намерение с лаунчера.
+    currentFilter = takePendingFilter() || "all";
+    currentCategory = "";
+    currentQuery = "";
 
     // имя пользователя в форме создания
     const u = ctx.user;
@@ -926,32 +928,37 @@ export default {
         idEl.textContent =
           "#" + u.id + (u.username ? " || @" + u.username : "");
     }
-    // связать input[type=file] с label (без глобального id)
+    // медиа: сетка превью + добавление/удаление нескольких фото
     const media = $(".js-media");
-    const label = $(".js-media-label");
-    if (media && label) {
-      on(label, "click", (e) => {
-        // клик по «крестику» — убрать изображение, не открывать диалог
-        if (e.target.closest(".js-media-remove")) {
-          e.preventDefault();
-          selectedImage = null;
-          media.value = "";
+    const grid = $(".js-media-grid");
+    if (media && grid) {
+      on(grid, "click", (e) => {
+        const rm = e.target.closest(".js-media-remove");
+        if (rm) {
+          const i = Number(rm.getAttribute("data-index"));
+          selectedImages.splice(i, 1);
           renderMediaPreview();
           return;
         }
-        media.click();
+        if (e.target.closest(".js-media-add")) media.click();
       });
       on(media, "change", async () => {
-        const file = media.files && media.files[0];
-        if (!file) return;
-        try {
-          selectedImage = await resizeImageToDataURL(file);
-          if (!root) return; // размонтировали, пока жали
-          renderMediaPreview();
-        } catch (_) {
-          ctx.toast("Не удалось загрузить изображение", "error");
+        const files = Array.from(media.files || []);
+        for (const file of files) {
+          if (selectedImages.length >= MEDIA_MAX) {
+            ctx.toast("Можно добавить не больше " + MEDIA_MAX + " фото", "error");
+            break;
+          }
+          try {
+            const url = await resizeImageToDataURL(file);
+            if (!root) return; // размонтировали, пока жали
+            selectedImages.push(url);
+          } catch (_) {
+            ctx.toast("Не удалось добавить изображение", "error");
+          }
         }
-        media.value = ""; // позволить выбрать тот же файл повторно
+        renderMediaPreview();
+        media.value = ""; // позволить выбрать те же файлы повторно
       });
     }
 
@@ -977,7 +984,7 @@ export default {
     if (root) root.innerHTML = "";
     root = null;
     ctx = null;
-    selectedImage = null;
+    selectedImages = [];
     editingId = null;
     detailId = null;
   },

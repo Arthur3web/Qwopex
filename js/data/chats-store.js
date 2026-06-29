@@ -43,6 +43,7 @@ export function seedDialogs() {
       peerName: "Поддержка",
       adId: null,
       adTitle: "",
+      support: true,
       unread: 0,
       messages: [
         { id: "m1", fromMe: false, text: "Добро пожаловать в Qwopex! Если возникнут вопросы — пишите.", ts: now - 26 * 60 * min },
@@ -86,6 +87,11 @@ export function startDialog({ peerName, subjectTitle }) {
     saveDialogs(dialogs);
   }
   return dialog.id;
+}
+
+// Всего непрочитанных по всем диалогам (для бейджа на лаунчере).
+export function totalUnread() {
+  return getDialogs().reduce((sum, d) => sum + (d.unread || 0), 0);
 }
 
 function lastTs(dialog) {

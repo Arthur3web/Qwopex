@@ -7,6 +7,8 @@
 import { REGISTRY, getApp } from "./registry.js";
 import { auth, createBus, escapeHtml } from "./sdk.js";
 import { getState as getWalletState } from "./data/wallet-store.js";
+import { counts as adsCounts, setPendingFilter } from "./data/ads-store.js";
+import { totalUnread as chatsUnread } from "./data/chats-store.js";
 
 const view = document.getElementById("view");
 const shellTop = document.getElementById("shell-top");
@@ -14,14 +16,6 @@ const bus = createBus();
 
 let currentAppId = null; // id смонтированного мини-аппа (null = лаунчер)
 let currentModule = null; // его default export
-const stats = { active: 0, moderation: 0 }; // кэш статистики для лаунчера
-
-// Мини-аппы шлют сюда статистику для профиля на лаунчере
-bus.on("ads:stats", (s) => {
-  stats.active = s.active || 0;
-  stats.moderation = s.moderation || 0;
-  if (!currentAppId) renderLauncher(); // обновить, если открыт лаунчер
-});
 
 // ---------- ТЕМА ----------
 function applyTheme() {
@@ -107,17 +101,24 @@ function renderLauncher() {
   const wallet = getWalletState();
   const balance = wallet.balance.toLocaleString("ru-RU");
   const bonus = wallet.bonus.toLocaleString("ru-RU");
+  const adsStats = adsCounts();
+  const unreadChats = chatsUnread();
   const idLine =
     "#" + (u.id ?? "") + (u.username ? " || @" + u.username : "");
 
-  const tiles = REGISTRY.map(
-    (a) => `
+  const tiles = REGISTRY.map((a) => {
+    // бейдж непрочитанных на плитке «Чаты»
+    const badge =
+      a.id === "chats" && unreadChats > 0
+        ? `<span class="tile-badge">${unreadChats}</span>`
+        : "";
+    return `
       <a class="app-tile" href="#/${a.id}" style="--tile:${a.color}">
         <span class="app-tile-icon"><svg class="icon"><use href="${a.icon}" /></svg></span>
-        <span class="app-tile-title">${escapeHtml(a.title)}</span>
+        <span class="app-tile-title">${escapeHtml(a.title)}${badge}</span>
         <span class="app-tile-desc">${escapeHtml(a.description)}</span>
-      </a>`,
-  ).join("");
+      </a>`;
+  }).join("");
 
   view.innerHTML = `
     <section class="page home active">
@@ -143,12 +144,12 @@ function renderLauncher() {
             </a>
           </div>
           <div class="stats">
-            <a class="stat" href="#/ads">
-              <div class="num">${stats.active}</div>
+            <a class="stat" href="#/ads" data-filter="active">
+              <div class="num">${adsStats.active}</div>
               <div class="label">Активные</div>
             </a>
-            <a class="stat" href="#/ads">
-              <div class="num">${stats.moderation}</div>
+            <a class="stat" href="#/ads" data-filter="moderation">
+              <div class="num">${adsStats.moderation}</div>
               <div class="label">На модерации</div>
             </a>
           </div>
@@ -309,11 +310,20 @@ async function loadIcons() {
   }
 }
 
+// Клик по статистике на лаунчере — открыть Объявления с нужным фильтром.
+function wireLauncherStats() {
+  view.addEventListener("click", (e) => {
+    const stat = e.target.closest(".stat[data-filter]");
+    if (stat) setPendingFilter(stat.getAttribute("data-filter"));
+  });
+}
+
 // ---------- СТАРТ ----------
 async function start() {
   applyTheme();
   await loadIcons(); // спрайт в DOM до первого рендера иконок
   wireShellTop();
+  wireLauncherStats();
   window.addEventListener("hashchange", route);
   // первый маршрут (если пусто — лаунчер)
   if (!location.hash) location.hash = "#/";

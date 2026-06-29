@@ -84,6 +84,11 @@ function lastMessage(dialog) {
   return dialog.messages[dialog.messages.length - 1] || null;
 }
 
+// поддержка — по флагу или по имени (на случай старых данных без флага)
+function isSupport(dialog) {
+  return dialog.support || dialog.peerName === "Поддержка";
+}
+
 function fmtSize(bytes) {
   if (bytes == null) return "";
   if (bytes < 1024) return bytes + " Б";
@@ -152,20 +157,28 @@ function renderList() {
     return;
   }
 
-  const sorted = dialogs
-    .slice()
-    .sort((a, b) => (lastMessage(b)?.ts || 0) - (lastMessage(a)?.ts || 0));
+  // поддержка всегда сверху, остальные — по времени последнего сообщения
+  const sorted = dialogs.slice().sort((a, b) => {
+    const sa = isSupport(a);
+    const sb = isSupport(b);
+    if (sa !== sb) return sa ? -1 : 1;
+    return (lastMessage(b)?.ts || 0) - (lastMessage(a)?.ts || 0);
+  });
 
   sorted.forEach((d) => {
     const last = lastMessage(d);
     const row = document.createElement("a");
-    row.className = "chat-row";
+    row.className = "chat-row" + (isSupport(d) ? " support" : "");
     row.href = "#/chats/" + d.id;
     row.dataset.id = d.id;
 
     const avatar = document.createElement("div");
     avatar.className = "chat-avatar";
-    avatar.textContent = (d.peerName || "?").charAt(0).toUpperCase();
+    if (isSupport(d)) {
+      avatar.innerHTML = '<svg class="icon"><use href="#i-send" /></svg>';
+    } else {
+      avatar.textContent = (d.peerName || "?").charAt(0).toUpperCase();
+    }
     row.appendChild(avatar);
 
     const main = document.createElement("div");
