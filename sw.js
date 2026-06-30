@@ -10,7 +10,7 @@
 // страницы (тост «Обновить»), чтобы не смешать версии модулей.
 // ============================================================
 
-const VERSION = "v48";
+const VERSION = "v49";
 const SHELL_CACHE = `qwopex-shell-${VERSION}`;
 const RUNTIME_CACHE = `qwopex-runtime-${VERSION}`;
 
@@ -29,6 +29,8 @@ const SHELL_ASSETS = [
   "./js/sdk.js",
   "./js/registry.js",
   "./js/ui/qx-modal.js",
+  "./js/ui/qx-sheet.js",
+  "./js/ui/qx-toast.js",
   "./js/data/chats-store.js",
   "./js/data/categories.js",
   "./js/data/wallet-store.js",

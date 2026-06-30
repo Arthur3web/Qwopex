@@ -862,42 +862,8 @@ body.light .chip.active .chip-count {
   color: var(--text-muted);
 }
 
-.post-actions {
-  position: relative;
-}
-
-.post-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 4px;
-  background: var(--border);
-  border: 1px solid #3a3a3c;
-  border-radius: 10px;
-  padding: 6px;
-  min-width: 170px;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
-  display: none;
-  flex-direction: column;
-  z-index: 10;
-}
-
-.post-menu.open {
-  display: flex;
-  animation: menu-in 0.12s ease-out;
-}
-
-@keyframes menu-in {
-  from {
-    opacity: 0;
-    transform: translateY(-4px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
+/* меню действий объявлений рендерится через qx-sheet (bottom-sheet),
+   .menu-item ниже переиспользуется его пунктами */
 .menu-item {
   display: flex;
   align-items: center;
@@ -935,16 +901,85 @@ body.light .chip.active .chip-count {
   background: rgba(255, 69, 58, 0.15);
 }
 
-body.light .post-menu {
-  background: #ffffff;
-  border-color: #e4e6ea;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-}
-
 /* цвет пунктов берётся из var(--text)/var(--danger) — оверрайд не нужен,
    иначе он перекрывал красный «Удалить» в светлой теме */
 body.light .menu-item:hover {
   background: #f4f5f7;
+}
+
+/* ====================== BOTTOM-SHEET (qx-sheet) ====================== */
+/* Light-DOM Web Component: модальное меню действий, выезжающее снизу.
+   z-index ниже тоста (1100), чтобы уведомления оставались поверх листа. */
+.qx-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+.qx-sheet[open] {
+  opacity: 1;
+}
+
+.qx-sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.qx-sheet-panel {
+  position: relative;
+  background: var(--surface);
+  color: var(--text);
+  border-top-left-radius: 16px;
+  border-top-right-radius: 16px;
+  padding: 8px 12px calc(env(safe-area-inset-bottom, 0px) + 12px);
+  box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.4);
+  max-height: 80vh;
+  overflow-y: auto;
+  transform: translateY(100%);
+  transition: transform 0.24s cubic-bezier(0.32, 0.72, 0, 1);
+}
+.qx-sheet[open] .qx-sheet-panel {
+  transform: translateY(0);
+}
+
+.qx-sheet-handle {
+  width: 36px;
+  height: 4px;
+  margin: 4px auto 10px;
+  border-radius: 2px;
+  background: var(--surface-3);
+  cursor: grab;
+  touch-action: none; /* перехватываем вертикальный свайп для закрытия */
+}
+
+.qx-sheet-title {
+  margin: 0 0 8px;
+  padding: 0 4px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.qx-sheet-items {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* пункты листа крупнее тач-таргетом, чем в выпадающем .post-menu */
+.qx-sheet-items .menu-item {
+  padding: 13px 12px;
+  font-size: 15px;
+  border-radius: 10px;
+}
+.qx-sheet-items .menu-item .icon {
+  width: 18px;
+  height: 18px;
 }
 
 .empty {

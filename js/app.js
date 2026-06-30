@@ -13,6 +13,7 @@ import {
   setAdDraft,
 } from "./data/ads-store.js";
 import { totalUnread as chatsUnread } from "./data/chats-store.js";
+import { toast } from "./ui/qx-toast.js";
 
 const view = document.getElementById("view");
 const shellTop = document.getElementById("shell-top");
@@ -20,7 +21,7 @@ const bus = createBus();
 
 // Версия приложения для подвала лаунчера.
 // ВАЖНО: держать синхронной с VERSION в sw.js — кэши SW завязаны на неё.
-const APP_VERSION = "v48";
+const APP_VERSION = "v49";
 
 let currentAppId = null; // id смонтированного мини-аппа (null = лаунчер)
 let currentModule = null; // его default export
@@ -44,34 +45,8 @@ function toggleTheme() {
 }
 
 // ---------- ТОСТЫ ----------
-// type: "info" | "success" | "error" — определяет иконку и цвет.
-const TOAST_ICONS = {
-  info: "#i-info",
-  success: "#i-check",
-  error: "#i-alert",
-};
-let toastTimer = null;
-function toast(message, type = "info") {
-  const kind = TOAST_ICONS[type] ? type : "info";
-  let el = document.getElementById("toast");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "toast";
-    document.body.appendChild(el);
-  }
-  el.className = "toast toast--" + kind;
-  // ошибки объявляем ассистивно сразу (assertive), остальное — вежливо
-  el.setAttribute("role", kind === "error" ? "alert" : "status");
-  el.innerHTML =
-    '<svg class="icon toast-icon"><use href="' +
-    TOAST_ICONS[kind] +
-    '" /></svg><span class="toast-text"></span>';
-  el.querySelector(".toast-text").textContent = message;
-  void el.offsetWidth; // reflow — чтобы повторный тост заново анимировался
-  el.classList.add("show");
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove("show"), 2600);
-}
+// Реализация вынесена в переиспользуемый компонент js/ui/qx-toast.js
+// (синглтон `toast(message, type)`, type: "info" | "success" | "error").
 
 // ---------- ФОКУС-МЕНЕДЖМЕНТ (a11y) ----------
 // При смене экрана переводим фокус на заголовок, чтобы скринридер

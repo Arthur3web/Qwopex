@@ -18,6 +18,7 @@ import {
   resizeImageToDataURL,
 } from "../sdk.js";
 import { confirmDialog } from "../ui/qx-modal.js";
+import { actionSheet } from "../ui/qx-sheet.js";
 import { adMessageInfo } from "../data/chats-store.js";
 import { CATEGORIES } from "../data/categories.js";
 import {
@@ -79,17 +80,6 @@ const TEMPLATE = `
         <button class="icon-btn js-detail-menu-btn" aria-label="Действия">
           <svg class="icon"><use href="#i-more" /></svg>
         </button>
-        <div class="post-menu detail-menu js-detail-menu">
-          <button class="menu-item" data-act="goto-edit">
-            <svg class="icon"><use href="#i-edit" /></svg><span>Редактировать</span>
-          </button>
-          <button class="menu-item js-detail-pin-item" data-act="toggle-pin-detail" hidden>
-            <svg class="icon"><use href="#i-pin-action" /></svg><span>Закрепить</span>
-          </button>
-          <button class="menu-item danger" data-act="delete-detail">
-            <svg class="icon"><use href="#i-trash" /></svg><span>Удалить</span>
-          </button>
-        </div>
       </div>
     </div>
     <div class="detail-body js-detail-body"></div>
@@ -259,42 +249,55 @@ function renderPosts(data) {
 
     const actions = document.createElement("div");
     actions.className = "post-actions";
-    const idAttr = escapeHtml(post.id);
-    const editItem =
-      '<button class="menu-item" data-menu-action="edit" data-id="' +
-      idAttr +
-      '"><svg class="icon"><use href="#i-edit"/></svg><span>Редактировать</span></button>';
-    // Закреплять можно только опубликованные (активные) объявления —
-    // на модерации публикация ещё не видна, закрепление не имеет смысла.
-    const pinItem =
-      post.status === "active"
-        ? '<button class="menu-item" data-menu-action="pin" data-id="' +
-          idAttr +
-          '"><svg class="icon"><use href="#i-pin-action"/></svg><span>' +
-          (post.pinned ? "Открепить" : "Закрепить") +
-          "</span></button>"
-        : "";
+    // Меню действий открывается как bottom-sheet (qx-sheet) по клику —
+    // пункты строятся динамически от статуса объявления (см. openPostMenu).
     actions.innerHTML =
       '<button class="icon-btn menu-btn" aria-label="Меню" data-id="' +
-      idAttr +
-      '"><svg class="icon"><use href="#i-more"/></svg></button>' +
-      '<div class="post-menu" data-menu-for="' +
-      idAttr +
-      '">' +
-      editItem +
-      pinItem +
-      '<button class="menu-item danger" data-menu-action="delete" data-id="' +
-      idAttr +
-      '"><svg class="icon"><use href="#i-trash"/></svg><span>Удалить</span></button>' +
-      "</div>";
+      escapeHtml(post.id) +
+      '"><svg class="icon"><use href="#i-more"/></svg></button>';
     div.appendChild(actions);
 
     container.appendChild(div);
   });
 }
 
-function closeAllMenus() {
-  $$(".post-menu.open").forEach((m) => m.classList.remove("open"));
+// Собрать пункты меню действий для объявления (общее для списка и детали).
+// Закреплять можно только опубликованные (активные) объявления — на
+// модерации публикация ещё не видна, закрепление не имеет смысла.
+function postMenuItems(post) {
+  const items = [{ id: "edit", label: "Редактировать", icon: "#i-edit" }];
+  if (post.status === "active") {
+    items.push({
+      id: "pin",
+      label: post.pinned ? "Открепить" : "Закрепить",
+      icon: "#i-pin-action",
+    });
+  }
+  items.push({ id: "delete", label: "Удалить", icon: "#i-trash", danger: true });
+  return items;
+}
+
+// Меню действий объявления в списке — bottom-sheet.
+async function openPostMenu(id) {
+  const post = posts.find((p) => String(p.id) === String(id));
+  if (!post) return;
+  const act = await actionSheet({ title: post.title, items: postMenuItems(post) });
+  if (act === "edit") ctx.navigate("#/ads/" + id + "/edit");
+  else if (act === "pin") togglePin(id);
+  else if (act === "delete") deletePost(id);
+}
+
+// Меню действий на странице объявления (overflow «⋮») — тот же bottom-sheet.
+async function openDetailMenu() {
+  if (detailId == null) return;
+  const post = posts.find((p) => String(p.id) === String(detailId));
+  if (!post) return;
+  const act = await actionSheet({ title: post.title, items: postMenuItems(post) });
+  if (act === "edit") ctx.navigate("#/ads/" + detailId + "/edit");
+  else if (act === "pin") {
+    togglePin(detailId);
+    renderDetail(detailId); // обновить бейдж/закрепление в карточке
+  } else if (act === "delete") deleteFromDetail(detailId);
 }
 
 function persist() {
@@ -591,19 +594,6 @@ function renderDetail(id) {
   detailId = post.id;
   body.textContent = "";
 
-  // пункт «Закрепить/Открепить» в меню — только для активных (как в списке)
-  const pinItem = $(".js-detail-pin-item");
-  if (pinItem) {
-    if (post.status === "active") {
-      pinItem.hidden = false;
-      pinItem.querySelector("span").textContent = post.pinned
-        ? "Открепить"
-        : "Закрепить";
-    } else {
-      pinItem.hidden = true;
-    }
-  }
-
   // иконка сообщений в шапке: бейдж с числом непрочитанных показываем
   // только когда есть новые; всё прочитано → белая иконка без счётчика.
   const info = adMessageInfo(post.id);
@@ -839,41 +829,20 @@ function initEditor() {
 function wireEvents() {
   // Делегированные клики внутри root
   on(root, "click", (e) => {
-    // меню поста
+    // меню поста в списке — bottom-sheet
     const menuBtn = e.target.closest(".menu-btn");
     if (menuBtn) {
       e.stopPropagation();
-      const id = menuBtn.getAttribute("data-id");
-      const menu = $('[data-menu-for="' + CSS.escape(id) + '"]');
-      const wasOpen = menu && menu.classList.contains("open");
-      closeAllMenus();
-      if (menu && !wasOpen) menu.classList.add("open");
+      openPostMenu(menuBtn.getAttribute("data-id"));
       return;
     }
-    // overflow-меню «⋮» на странице объявления
+    // overflow-меню «⋮» на странице объявления — bottom-sheet
     const detailMenuBtn = e.target.closest(".js-detail-menu-btn");
     if (detailMenuBtn) {
       e.stopPropagation();
-      const menu = $(".js-detail-menu");
-      const wasOpen = menu && menu.classList.contains("open");
-      closeAllMenus();
-      if (menu && !wasOpen) menu.classList.add("open");
+      openDetailMenu();
       return;
     }
-    // пункты меню списка (data-menu-action). Пункты меню детали используют
-    // data-act и обрабатываются ниже, поэтому здесь их не перехватываем.
-    const item = e.target.closest(".menu-item");
-    if (item && item.hasAttribute("data-menu-action")) {
-      e.stopPropagation();
-      const id = item.getAttribute("data-id");
-      const action = item.getAttribute("data-menu-action");
-      closeAllMenus();
-      if (action === "delete") deletePost(id);
-      else if (action === "pin") togglePin(id);
-      else if (action === "edit") ctx.navigate("#/ads/" + id + "/edit");
-      return;
-    }
-    closeAllMenus();
 
     // действия мини-аппа (кнопки) — приоритетнее клика по карточке
     const actEl = e.target.closest("[data-act]");
@@ -883,14 +852,6 @@ function wireEvents() {
       else if (act === "goto-create") ctx.navigate("#/ads/create");
       else if (act === "goto-list") ctx.back("#/ads");
       else if (act === "save-post") savePost();
-      else if (act === "goto-edit" && detailId != null)
-        ctx.navigate("#/ads/" + detailId + "/edit");
-      else if (act === "delete-detail" && detailId != null)
-        deleteFromDetail(detailId);
-      else if (act === "toggle-pin-detail" && detailId != null) {
-        togglePin(detailId);
-        renderDetail(detailId); // обновить бейдж и состояние кнопки
-      }
       else if (act === "create-back")
         ctx.back(editingId != null ? "#/ads/" + editingId : "#/ads");
       return;
@@ -1039,7 +1000,6 @@ export default {
   },
 
   unmount() {
-    closeAllMenus();
     cleanups.splice(0).forEach((fn) => fn());
     if (root) root.innerHTML = "";
     root = null;
