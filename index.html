@@ -2,7 +2,13 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- interactive-widget=resizes-content: при открытии экранной клавиатуры
+         сжимается сам layout (100dvh уменьшается), а не накрывается поверх —
+         иначе браузер прокручивает страницу вверх и прячет историю чата. -->
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content"
+    />
     <meta name="theme-color" content="#0f1115" />
     <!-- ========== БЕЗОПАСНОСТЬ ========== -->
     <meta

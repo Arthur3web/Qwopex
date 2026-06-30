@@ -406,6 +406,14 @@ function wireEvents() {
     e.target.value = ""; // позволить выбрать тот же файл повторно
   });
 
+  // При фокусе поля ввода клавиатура сжимает layout (interactive-widget):
+  // контейнер сообщений уменьшается, поэтому до-прокручиваем его к низу,
+  // чтобы последняя переписка не уехала под клавиатуру.
+  on($(".js-msg-input"), "focus", () => {
+    const box = $(".js-messages");
+    if (box) requestAnimationFrame(() => (box.scrollTop = box.scrollHeight));
+  });
+
   on($(".js-chat-form"), "submit", (e) => {
     e.preventDefault();
     const input = $(".js-msg-input");
