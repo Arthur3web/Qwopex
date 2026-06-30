@@ -14,6 +14,8 @@
   --success: #00ff88;
   --success-soft: rgba(0, 255, 136, 0.14);
   --danger: #ff453a;
+  /* мягкая подложка danger (в пару к success-soft/warning-soft) */
+  --danger-soft: rgba(255, 69, 58, 0.15);
   /* статус «на модерации» */
   --warning: #ff9f0a;
   --warning-soft: rgba(255, 159, 10, 0.16);
@@ -21,6 +23,13 @@
   --pin: #ff2d55;
   /* приподнятая поверхность (ховер чипов и т.п.) */
   --surface-3: #3a3d45;
+  /* поля ввода и rich-редактор */
+  --field-bg: #111;
+  --field-border: #333;
+  /* панель инструментов редактора */
+  --field-toolbar-bg: #1a1a1f;
+  --field-toolbar-border: #2a2a30;
+  --field-tool: #c9ccd1;
   --radius: 12px;
   --radius-sm: 8px;
 }
@@ -37,6 +46,12 @@ body.light {
   --success-soft: rgba(10, 157, 79, 0.16);
   /* приподнятая поверхность для светлой темы */
   --surface-3: #e4e6ea;
+  /* поля ввода и редактор — светлые */
+  --field-bg: #ffffff;
+  --field-border: #e4e6ea;
+  --field-toolbar-bg: #f4f5f7;
+  --field-toolbar-border: #e4e6ea;
+  --field-tool: #4b5563;
 }
 
 * {
@@ -291,13 +306,11 @@ body.light .wallet-ops::-webkit-scrollbar-thumb {
   margin-top: 8px;
 }
 
-body.light .login {
-  background: #f4f5f7;
-}
-
+/* .login наследует var(--bg) — отдельный оверрайд не нужен.
+   У логотипа в светлой теме своя подложка (surface-2) и насыщенный акцент. */
 body.light .login-logo {
-  background: #eef1f7;
-  color: #3b82f6;
+  background: var(--surface-2);
+  color: var(--accent);
 }
 
 /* ====================== TOP BAR ====================== */
@@ -401,7 +414,7 @@ body.light .theme-btn .theme-icon-light {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9aa4b2;
+  color: var(--text-muted);
   flex-shrink: 0;
 }
 
@@ -433,7 +446,7 @@ body.light .theme-btn .theme-icon-light {
 
 .date {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-muted);
   margin-top: 2px;
 }
 
@@ -499,7 +512,7 @@ body.light .theme-btn .theme-icon-light {
 
 .label {
   font-size: 12px;
-  color: #aaa;
+  color: var(--text-muted);
 }
 
 .create-btn {
@@ -514,12 +527,12 @@ body.light .theme-btn .theme-icon-light {
 }
 
 .create-btn:hover {
-  background: #383c46;
+  background: var(--surface-3);
 }
 
 /* ====================== POSTS ====================== */
 .posts-page {
-  background: #1c1c1e;
+  background: var(--surface);
   color: var(--text);
 }
 
@@ -546,7 +559,7 @@ body.light .theme-btn .theme-icon-light {
 }
 
 .add-btn {
-  background: var(--border);
+  background: var(--surface-2);
   border-radius: 50%;
   width: 38px;
   height: 38px;
@@ -740,32 +753,19 @@ body.light .search-clear:hover {
   background: rgba(255, 255, 255, 0.25);
 }
 
-body.light .filters {
-  background: #ffffff;
-  border-color: #e4e6ea;
-}
-
+/* .filters/.chip/.chip.active/.chip.active .chip-count наследуют токены
+   (surface/border/accent) — в светлой теме отличается лишь приглушённый
+   цвет текста чипа и подложка счётчика. */
 body.light .chip {
-  background: #eef1f7;
-  border-color: transparent;
   color: #374151;
 }
 
 body.light .chip:hover {
-  color: #111;
-}
-
-body.light .chip.active {
-  background: #3b82f6;
-  color: #fff;
+  color: var(--text);
 }
 
 body.light .chip-count {
   background: rgba(0, 0, 0, 0.08);
-}
-
-body.light .chip.active .chip-count {
-  background: rgba(255, 255, 255, 0.25);
 }
 
 .posts-list {
@@ -890,7 +890,7 @@ body.light .chip.active .chip-count {
 }
 
 .menu-item:hover {
-  background: #3a3a3c;
+  background: var(--surface-3);
 }
 
 .menu-item.danger {
@@ -898,13 +898,13 @@ body.light .chip.active .chip-count {
 }
 
 .menu-item.danger:hover {
-  background: rgba(255, 69, 58, 0.15);
+  background: var(--danger-soft);
 }
 
 /* цвет пунктов берётся из var(--text)/var(--danger) — оверрайд не нужен,
    иначе он перекрывал красный «Удалить» в светлой теме */
 body.light .menu-item:hover {
-  background: #f4f5f7;
+  background: var(--bg);
 }
 
 /* ====================== BOTTOM-SHEET (qx-sheet) ====================== */
@@ -1124,8 +1124,8 @@ body.light .menu-item:hover {
   width: 100%;
   padding: 12px;
   border-radius: 10px;
-  border: 1px solid #333;
-  background: #111;
+  border: 1px solid var(--field-border);
+  background: var(--field-bg);
   color: var(--text);
   font-family: inherit;
   font-size: 15px;
@@ -1149,8 +1149,8 @@ body.light .menu-item:hover {
 
 /* ============ RICH EDITOR ============ */
 .editor {
-  background: #111;
-  border: 1px solid #333;
+  background: var(--field-bg);
+  border: 1px solid var(--field-border);
   border-radius: 10px;
   overflow: hidden;
   transition: border-color 0.15s;
@@ -1165,15 +1165,15 @@ body.light .menu-item:hover {
   align-items: center;
   gap: 2px;
   padding: 6px;
-  background: #1a1a1f;
-  border-bottom: 1px solid #2a2a30;
+  background: var(--field-toolbar-bg);
+  border-bottom: 1px solid var(--field-toolbar-border);
   flex-wrap: wrap;
 }
 
 .tool {
   background: none;
   border: none;
-  color: #c9ccd1;
+  color: var(--field-tool);
   width: 32px;
   height: 32px;
   border-radius: 6px;
@@ -1189,7 +1189,7 @@ body.light .menu-item:hover {
 }
 
 .tool:hover {
-  background: #2a2a30;
+  background: var(--field-toolbar-border);
   color: var(--text);
 }
 
@@ -1201,7 +1201,7 @@ body.light .menu-item:hover {
 .tool-sep {
   width: 1px;
   height: 20px;
-  background: #2a2a30;
+  background: var(--field-toolbar-border);
   margin: 0 4px;
 }
 
@@ -1237,7 +1237,7 @@ body.light .menu-item:hover {
 
 .editor-area.is-empty::before {
   content: attr(data-placeholder);
-  color: #6b7280;
+  color: var(--text-muted);
   pointer-events: none;
 }
 
@@ -1673,63 +1673,23 @@ body.light .menu-item:hover {
 }
 
 /* ====================== СВЕТЛАЯ ТЕМА ====================== */
-body.light {
-  background: #f4f5f7;
-  color: #111;
-}
+/* Большинство правил светлой темы теперь обеспечивают сами токены
+   (см. body.light в начале файла): фон/поверхности/границы/текст/поля
+   переключаются автоматически. Здесь остаются только точечные отличия,
+   которые не выражаются переключением токена. */
 
-body.light .top-bar,
-body.light .profile-card,
-body.light .balance,
-body.light .stats {
-  background: #ffffff;
-  border-color: #e4e6ea;
-}
-
-body.light .home {
-  background: #f4f5f7;
-}
-
-body.light .posts-page,
-body.light .posts-header {
-  background: #ffffff;
-  color: #111;
-  border-color: #e4e6ea;
-}
-
-body.light .create-page {
-  background: #f4f5f7;
-}
-
+/* Иконка приложения в шапке: на светлом фоне нужен насыщенный акцент
+   вместо мягкого (--accent-soft уходит в нечитаемую блёклость). */
 body.light .app-icon {
-  background: #eef1f7;
-  color: #3b82f6;
+  color: var(--accent);
 }
 
-body.light .avatar {
-  background: #eef1f7;
-  color: #6b7280;
-}
-
-body.light .create-btn,
-body.light .add-btn {
-  background: #eef1f7;
-  color: #111;
-}
-
+/* Поле поиска чуть светлее окружающей поверхности (фон страницы). */
 body.light #posts-search {
-  background: #f4f5f7;
-  color: #111;
+  background: var(--bg);
 }
 
-body.light .search-icon {
-  color: #6b7280;
-}
-
-body.light .post {
-  border-bottom: 1px solid #e4e6ea;
-}
-
+/* Описание объявления: в светлой теме контрастнее, чем общий muted. */
 body.light .post-desc {
   color: #555;
 }
@@ -1737,52 +1697,6 @@ body.light .post-desc {
 body.light .post-desc b,
 body.light .post-desc strong {
   color: #000;
-}
-
-body.light .form > input[type="text"],
-body.light .form-select,
-body.light .price-input,
-body.light .editor {
-  background: #fff;
-  color: #111;
-  border-color: #e4e6ea;
-}
-
-body.light .price-input input,
-body.light .editor-area {
-  color: #111;
-}
-
-body.light .editor-toolbar {
-  background: #f4f5f7;
-  border-color: #e4e6ea;
-}
-
-body.light .tool {
-  color: #4b5563;
-}
-
-body.light .tool:hover {
-  background: #e4e6ea;
-  color: #111;
-}
-
-body.light .tool-sep {
-  background: #d1d5db;
-}
-
-body.light .upload-area {
-  border-color: #d1d5db;
-  color: #6b7280;
-}
-
-body.light .upload-icon {
-  color: #3b82f6;
-}
-
-body.light .label,
-body.light .date {
-  color: #6b7280;
 }
 
 /* ====================== МОБИЛЬНАЯ АДАПТАЦИЯ ====================== */
