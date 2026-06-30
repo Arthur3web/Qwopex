@@ -301,11 +301,22 @@ body.light .login-logo {
 }
 
 /* ====================== TOP BAR ====================== */
+/* Единая высота шапки на всех страницах. min-height задаёт высоту, а малый
+   вертикальный паддинг не даёт контенту (кнопки 38px, двухстрочный peer чата)
+   её раздувать. box-sizing — чтобы паддинг входил в min-height. */
+.top-bar,
+.posts-header,
+.mini-header,
+.create-header {
+  box-sizing: border-box;
+  min-height: 52px;
+}
+
 .top-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 7px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -515,7 +526,7 @@ body.light .theme-btn .theme-icon-light {
 .posts-header {
   display: flex;
   align-items: center;
-  padding: 12px 16px;
+  padding: 7px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
   gap: 8px;
@@ -953,7 +964,7 @@ body.light .menu-item:hover {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 7px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }
@@ -1469,6 +1480,10 @@ body.light .menu-item:hover {
 .chat-ad-link:hover {
   text-decoration: underline;
 }
+.chat-ad-deleted {
+  color: var(--text-muted);
+  font-style: italic;
+}
 
 /* ====================== МАРКЕТ ====================== */
 .market-page,
@@ -1741,8 +1756,10 @@ body.light .date {
     padding: 14px;
   }
   .top-bar,
-  .posts-header {
-    padding: 10px 12px;
+  .posts-header,
+  .mini-header,
+  .create-header {
+    padding: 7px 12px;
   }
   .search-container {
     padding: 8px 12px;
@@ -1765,9 +1782,6 @@ body.light .date {
   }
   .create-body {
     padding: 12px;
-  }
-  .create-header {
-    padding: 10px 12px;
   }
   .profile-card {
     padding: 10px;
@@ -1931,7 +1945,7 @@ body.light .date {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 12px 16px;
+  padding: 7px 16px;
   background: var(--surface);
   border-bottom: 1px solid var(--border);
 }

@@ -358,7 +358,7 @@ function wireEvents() {
     if (!actEl) return;
     const act = actEl.getAttribute("data-act");
     if (act === "home") ctx.navigate("#/");
-    else if (act === "goto-catalog") ctx.navigate("#/market");
+    else if (act === "goto-catalog") ctx.back("#/market");
     else if (act === "contact") contactSeller();
     else if (act === "buy") buyProduct();
   });

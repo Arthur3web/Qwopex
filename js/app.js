@@ -99,6 +99,7 @@ function makeCtx(subpath) {
     navigate: (hash) => {
       location.hash = hash;
     },
+    back: (fallback) => goBack(fallback),
     toast,
     scrollTop: () => window.scrollTo(0, 0),
   };
@@ -189,6 +190,30 @@ function parseRoute() {
   return { appId: segments[0] || null, subpath: segments.slice(1) };
 }
 
+// ---------- ГЛУБИНА ИСТОРИИ ----------
+// Помечаем каждую запись истории порядковым индексом, чтобы кнопки «назад»
+// в мини-аппах могли вернуться на реально предыдущий экран (history.back),
+// а не на захардкоженный список. navIdx == 0 — назад внутри приложения некуда
+// (прямой заход по ссылке/перезагрузка), тогда уходим на фолбэк.
+let navIdx = 0;
+function trackHistoryIndex() {
+  const st = history.state;
+  if (st && typeof st.qxIdx === "number") {
+    navIdx = st.qxIdx; // переход на уже посещённую запись (назад/вперёд)
+  } else {
+    navIdx += 1; // новая запись вперёд — присваиваем следующий индекс
+    try {
+      history.replaceState({ qxIdx: navIdx }, "");
+    } catch (_) {}
+  }
+}
+
+// Назад по истории, если есть куда; иначе — на фолбэк-маршрут мини-аппа.
+function goBack(fallback) {
+  if (navIdx > 0) history.back();
+  else location.hash = fallback || "#/";
+}
+
 async function unmountCurrent() {
   if (currentModule && typeof currentModule.unmount === "function") {
     try {
@@ -202,6 +227,7 @@ async function unmountCurrent() {
 }
 
 async function route() {
+  trackHistoryIndex();
   const { appId, subpath } = parseRoute();
 
   // лаунчер
@@ -436,6 +462,12 @@ function handleShareTarget() {
 // ---------- СТАРТ ----------
 async function start() {
   applyTheme();
+  // стартовая запись истории получает индекс 0 (назад внутри приложения некуда)
+  try {
+    if (!history.state || typeof history.state.qxIdx !== "number") {
+      history.replaceState({ qxIdx: 0 }, "");
+    }
+  } catch (_) {}
   await loadIcons(); // спрайт в DOM до первого рендера иконок
   wireShellTop();
   wireLauncherStats();

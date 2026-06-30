@@ -575,6 +575,8 @@ function enterEdit(id) {
 
 function enterDetail(id) {
   if (!renderDetail(id)) {
+    // объявление удалено (например, переход по старой ссылке из чата)
+    ctx.toast("Объявление удалено", "error");
     ctx.navigate("#/ads");
     return;
   }
@@ -879,7 +881,7 @@ function wireEvents() {
       const act = actEl.getAttribute("data-act");
       if (act === "home") ctx.navigate("#/");
       else if (act === "goto-create") ctx.navigate("#/ads/create");
-      else if (act === "goto-list") ctx.navigate("#/ads");
+      else if (act === "goto-list") ctx.back("#/ads");
       else if (act === "save-post") savePost();
       else if (act === "goto-edit" && detailId != null)
         ctx.navigate("#/ads/" + detailId + "/edit");
@@ -890,7 +892,7 @@ function wireEvents() {
         renderDetail(detailId); // обновить бейдж и состояние кнопки
       }
       else if (act === "create-back")
-        ctx.navigate(editingId != null ? "#/ads/" + editingId : "#/ads");
+        ctx.back(editingId != null ? "#/ads/" + editingId : "#/ads");
       return;
     }
 

@@ -9,6 +9,7 @@
 
 import { resizeImageToDataURL, readFileAsDataURL } from "../sdk.js";
 import { getDialogs, saveDialogs } from "../data/chats-store.js";
+import { getPosts } from "../data/ads-store.js";
 
 const MSG_MAX = 2000;
 // Лимит для НЕ-картинок: localStorage невелик, base64 раздувает ~на треть.
@@ -319,13 +320,22 @@ function enterConversation(id) {
   if (subEl) {
     subEl.textContent = "";
     if (dialog.adTitle) {
-      // ссылка на объявление — можно перейти и посмотреть
-      if (dialog.adId != null) {
+      // Ссылка на объявление активна, только если оно ещё существует.
+      // Удалённое объявление помечаем приглушённым текстом без ссылки.
+      const adExists =
+        dialog.adId != null &&
+        getPosts().some((p) => String(p.id) === String(dialog.adId));
+      if (adExists) {
         const link = document.createElement("a");
         link.className = "chat-ad-link";
         link.href = "#/ads/" + dialog.adId;
         link.textContent = "по: " + dialog.adTitle;
         subEl.appendChild(link);
+      } else if (dialog.adId != null) {
+        const span = document.createElement("span");
+        span.className = "chat-ad-deleted";
+        span.textContent = "Объявление удалено";
+        subEl.appendChild(span);
       } else {
         subEl.textContent = "по: " + dialog.adTitle;
       }
@@ -356,7 +366,7 @@ function wireEvents() {
     if (!actEl) return;
     const act = actEl.getAttribute("data-act");
     if (act === "home") ctx.navigate("#/");
-    else if (act === "goto-list") ctx.navigate("#/chats");
+    else if (act === "goto-list") ctx.back("#/chats");
   });
 
   // кнопка «скрепка» открывает выбор файла
