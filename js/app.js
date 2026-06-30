@@ -335,7 +335,18 @@ function showUpdateToast(sw) {
 // Браузер сам опрашивает sw.js лишь при загрузке и ~раз в сутки — кнопка даёт
 // пользователю опросить сервер принудительно, когда тост не появился.
 async function checkForUpdates(btn) {
-  if (!("serviceWorker" in navigator) || !swRegistration) {
+  if (!("serviceWorker" in navigator)) {
+    toast("Обновления недоступны", "error");
+    return;
+  }
+  // SW мог зарегистрироваться в прошлый визит, а переменная — остаться пустой
+  // (например, гонка с load). Подхватываем активную регистрацию.
+  if (!swRegistration) {
+    try {
+      swRegistration = await navigator.serviceWorker.getRegistration();
+    } catch (_) {}
+  }
+  if (!swRegistration) {
     toast("Обновления недоступны", "error");
     return;
   }
@@ -433,7 +444,11 @@ async function start() {
   // первый маршрут (если пусто — лаунчер)
   if (!location.hash) location.hash = "#/";
   route();
-  window.addEventListener("load", initServiceWorker);
+  // SW регистрируем после полной загрузки, но если load уже прошёл (start()
+  // отрабатывает после await loadIcons — load мог успеть сработать) —
+  // вызываем сразу, иначе initServiceWorker не выполнится и SW не зарегается.
+  if (document.readyState === "complete") initServiceWorker();
+  else window.addEventListener("load", initServiceWorker);
 }
 
 start();
