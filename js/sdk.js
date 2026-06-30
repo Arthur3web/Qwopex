@@ -170,12 +170,20 @@ export function readFileAsDataURL(file) {
 
 // ============================================================
 // АВТОРИЗАЦИЯ (Telegram Login Widget)
-// Сейчас отключена для локальной разработки — отдаём fake-user.
-// Раскомментируйте блок ниже и задайте TG_BOT_USERNAME, когда
-// будет готов бэкенд для проверки подписи Telegram.
+// Фронт-слой готов: сессия хранится в localStorage, шелл показывает
+// логин-экран, когда getUser() === null. Серверная проверка подписи
+// Telegram (POST /api/auth/telegram) ещё не подключена — см. AUTH.md.
+// Пока в дев-режиме доступен demo-вход (auth.devLogin), который кладёт
+// в сессию FAKE_USER без обращения к бэкенду.
 // ============================================================
 
-// const TG_BOT_USERNAME = "YOUR_BOT_USERNAME";
+// DEV=true — показывать кнопку demo-входа и разрешать вход без бэкенда.
+// На проде выставить false: вход только через Telegram (после бэкенда).
+export const DEV = true;
+
+// Имя бота для Telegram Login Widget (задаётся при подключении бэкенда).
+// export const TG_BOT_USERNAME = "YOUR_BOT_USERNAME";
+
 const authStore = createStorage("auth");
 
 const FAKE_USER = {
@@ -189,16 +197,22 @@ const FAKE_USER = {
 };
 
 export const auth = {
+  // Текущий пользователь сессии или null (тогда шелл рисует логин-экран).
   getUser() {
-    // const saved = authStore.get("user");
-    // return saved || null;
-    return FAKE_USER; // dev-режим без авторизации
+    return authStore.get("user", null);
   },
+  // Сохранить пользователя сессии. Сюда же будет писать ответ бэкенда
+  // после успешной проверки подписи Telegram.
   saveUser(user) {
     authStore.set("user", user);
+    return user;
+  },
+  // Demo-вход для разработки без бэкенда (работает только при DEV).
+  devLogin() {
+    if (!DEV) return null;
+    return this.saveUser(FAKE_USER);
   },
   logout() {
     authStore.remove("user");
-    console.log("logout disabled (no auth mode)");
   },
 };

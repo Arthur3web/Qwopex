@@ -306,6 +306,39 @@ body.light .wallet-ops::-webkit-scrollbar-thumb {
   margin-top: 8px;
 }
 
+.login-dev-btn {
+  width: 100%;
+  margin-top: 8px;
+  padding: 14px;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+  font-size: 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.login-dev-btn .icon {
+  width: 20px;
+  height: 20px;
+}
+
+.login-dev-btn:hover {
+  background: var(--accent-soft);
+}
+
+.login-note {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 13px;
+  text-align: center;
+}
+
 /* .login наследует var(--bg) — отдельный оверрайд не нужен.
    У логотипа в светлой теме своя подложка (surface-2) и насыщенный акцент. */
 body.light .login-logo {

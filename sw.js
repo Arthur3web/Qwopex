@@ -10,7 +10,7 @@
 // страницы (тост «Обновить»), чтобы не смешать версии модулей.
 // ============================================================
 
-const VERSION = "v49";
+const VERSION = "v50";
 const SHELL_CACHE = `qwopex-shell-${VERSION}`;
 const RUNTIME_CACHE = `qwopex-runtime-${VERSION}`;
 

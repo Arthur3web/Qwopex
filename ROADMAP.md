@@ -100,18 +100,27 @@ export default {
 
 ## Этап 3. Авторизация (Telegram) + бэкенд (3–5 дней)
 
+> Пошаговая инструкция по подключению бота и серверной проверке подписи —
+> в [AUTH.md](AUTH.md). Фронт-слой уже готов (сессия, логин-экран, гейт).
+
+- [x] **Фронт-слой авторизации**: `auth` в `sdk.js` хранит сессию в
+      `localStorage` (`getUser`/`saveUser`/`logout`), флаг `DEV`. Шелл рисует
+      логин-экран (`renderLogin`) при `auth.getUser() === null`, гейт в `route()`
+      не пускает в мини-аппы без сессии. В дев-режиме — кнопка «Войти как demo»
+      (`auth.devLogin`). Выход из шапки чистит сессию и возвращает на логин.
+- [x] Убрать `FAKE_USER` из `sdk.js` (оставлен под флагом `DEV` — demo-вход).
 - [ ] **Бэкенд для проверки подписи Telegram Login** (Node/Go): эндпоинт
       `POST /api/auth/telegram` валидирует `hash` по HMAC с токеном бота,
-      выдаёт сессионную httpOnly-cookie или JWT.
-- [ ] **Включить виджет**: раскомментировать блок в `sdk.js`, задать
-      `TG_BOT_USERNAME`, отрисовать `#telegram-login` на экране логина
-      (добавить login-view в шелл, показывать при `auth.getUser() === null`).
+      выдаёт сессионную httpOnly-cookie или JWT. См. [AUTH.md](AUTH.md) §3-4.
+- [~] **Включить виджет**: контейнер `#telegram-login` и логин-экран готовы;
+      блок виджета лежит закомментированным в `renderLogin` (`app.js`).
+      Осталось: задать `TG_BOT_USERNAME`, `/setdomain` у бота, колбэк
+      `onTelegramAuth` → `POST /api/auth/telegram` (требует бэкенд).
 - [ ] **CSP**: при появлении API на другом домене расширить `connect-src`
       (сейчас `'self'`); виджет уже разрешён (`script-src https://telegram.org`,
       `frame-src https://oauth.telegram.org`).
 - [ ] **SW**: запросы `/api/*` уже network-only — проверить, что cookie/JWT
       проходят (credentials: 'include' на fetch со стороны приложения).
-- [ ] Убрать `FAKE_USER` из `sdk.js` (оставить под флагом `DEV`).
 
 ## Этап 4. Мини-апп «Объявления» — продакшн (4–6 дней)
 

@@ -5,7 +5,7 @@
 // ============================================================
 
 import { REGISTRY, getApp } from "./registry.js";
-import { auth, createBus, escapeHtml } from "./sdk.js";
+import { auth, DEV, createBus, escapeHtml } from "./sdk.js";
 import { getState as getWalletState } from "./data/wallet-store.js";
 import {
   counts as adsCounts,
@@ -21,7 +21,7 @@ const bus = createBus();
 
 // Версия приложения для подвала лаунчера.
 // ВАЖНО: держать синхронной с VERSION в sw.js — кэши SW завязаны на неё.
-const APP_VERSION = "v49";
+const APP_VERSION = "v50";
 
 let currentAppId = null; // id смонтированного мини-аппа (null = лаунчер)
 let currentModule = null; // его default export
@@ -78,6 +78,38 @@ function makeCtx(subpath) {
     toast,
     scrollTop: () => window.scrollTo(0, 0),
   };
+}
+
+// ---------- ЭКРАН ВХОДА ----------
+// Показывается, когда сессии нет (auth.getUser() === null). Реальный
+// Telegram Login Widget смонтируется в #telegram-login после подключения
+// бэкенда (см. AUTH.md). Пока в дев-режиме доступен demo-вход.
+function renderLogin() {
+  shellTop.hidden = true;
+  document.title = "Вход — qwopex";
+  view.innerHTML = `
+    <section class="page login active">
+      <div class="login-container">
+        <div class="login-logo"><svg class="icon"><use href="#i-logo" /></svg></div>
+        <h1 class="login-title">qwopex</h1>
+        <p class="login-subtitle">Войдите через Telegram, чтобы продолжить</p>
+        <!-- Telegram Login Widget подключается сюда, когда готов бэкенд (AUTH.md):
+             <script async src="https://telegram.org/js/telegram-widget.js?22"
+               data-telegram-login="TG_BOT_USERNAME" data-size="large"
+               data-onauth="onTelegramAuth(user)" data-request-access="write"></script> -->
+        <div id="telegram-login"></div>
+        ${
+          DEV
+            ? '<button class="login-dev-btn" type="button" data-action="dev-login">' +
+              '<svg class="icon"><use href="#i-user" /></svg><span>Войти как demo</span></button>'
+            : ""
+        }
+        <p class="login-note">Вход через Telegram появится после подключения бэкенда.</p>
+      </div>
+    </section>
+  `;
+  window.scrollTo(0, 0);
+  focusHeading();
 }
 
 // ---------- ЛАУНЧЕР (домашний экран супераппа) ----------
@@ -203,6 +235,14 @@ async function unmountCurrent() {
 
 async function route() {
   trackHistoryIndex();
+
+  // Гейт авторизации: без сессии показываем логин-экран независимо от маршрута.
+  if (!auth.getUser()) {
+    await unmountCurrent();
+    renderLogin();
+    return;
+  }
+
   const { appId, subpath } = parseRoute();
 
   // лаунчер
@@ -257,7 +297,20 @@ function wireShellTop() {
     if (!act) return;
     const a = act.getAttribute("data-action");
     if (a === "toggle-theme") toggleTheme();
-    else if (a === "logout") auth.logout();
+    else if (a === "logout") {
+      auth.logout();
+      route(); // сессии больше нет → гейт покажет логин-экран
+    }
+  });
+}
+
+// ---------- ДЕЙСТВИЯ ЭКРАНА ВХОДА ----------
+// Кнопка demo-входа живёт внутри #view (не в шапке), поэтому слушаем здесь.
+function wireAuthActions() {
+  view.addEventListener("click", (e) => {
+    if (!e.target.closest("[data-action='dev-login']")) return;
+    auth.devLogin();
+    route(); // сессия появилась → перерисуем текущий маршрут (лаунчер/мини-апп)
   });
 }
 
@@ -446,6 +499,7 @@ async function start() {
   await loadIcons(); // спрайт в DOM до первого рендера иконок
   wireShellTop();
   wireLauncherStats();
+  wireAuthActions();
   window.addEventListener("hashchange", route);
   handleShareTarget();
   // первый маршрут (если пусто — лаунчер)
